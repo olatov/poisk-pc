@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectOptions>
+    <Version Value="12"/>
+    <General>
+      <Flags>
+        <MainUnitHasCreateFormStatements Value="False"/>
+        <MainUnitHasTitleStatement Value="False"/>
+        <MainUnitHasScaledStatement Value="False"/>
+      </Flags>
+      <SessionStorage Value="InProjectDir"/>
+      <Title Value="Poisk"/>
+      <UseAppBundle Value="False"/>
+      <ResourceType Value="res"/>
+      <Resources Count="30">
+        <Resource_0 FileName="assets/fonts/LiberationMono-Bold.ttf" Type="RCDATA" ResourceName="FONT"/>
+        <Resource_1 FileName="gfx/shader.fs" Type="RCDATA" ResourceName="GFX_SHADER"/>
+        <Resource_2 FileName="bin/rom/bios-1991.rom" Type="RCDATA" ResourceName="BIOS-1991"/>
+        <Resource_3 FileName="tape/basic.bin" Type="RCDATA" ResourceName="BIN-BASIC"/>
+        <Resource_4 FileName="tape/arkanoid.bin" Type="RCDATA" ResourceName="BIN-ARKANOID"/>
+        <Resource_5 FileName="tape/eden.bin" Type="RCDATA" ResourceName="BIN-EDEN"/>
+        <Resource_6 FileName="tape/digger.bin" Type="RCDATA" ResourceName="BIN-DIGGER"/>
+        <Resource_7 FileName="tape/chess.bin" Type="RCDATA" ResourceName="BIN-CHESS"/>
+        <Resource_8 FileName="tape/cat.bin" Type="RCDATA" ResourceName="BIN-CAT"/>
+        <Resource_9 FileName="tape/jaba.bin" Type="RCDATA" ResourceName="BIN-JABA"/>
+        <Resource_10 FileName="tape/ptica.bin" Type="RCDATA" ResourceName="BIN-PTICA"/>
+        <Resource_11 FileName="tape/malar.bin" Type="RCDATA" ResourceName="BIN-MALAR"/>
+        <Resource_12 FileName="tape/mission.bin" Type="RCDATA" ResourceName="BIN-MISSION"/>
+        <Resource_13 FileName="tape/liv.bin" Type="RCDATA" ResourceName="BIN-LIV"/>
+        <Resource_14 FileName="tape/labir.bin" Type="RCDATA" ResourceName="BIN-LABIR"/>
+        <Resource_15 FileName="tape/km.bin" Type="RCDATA" ResourceName="BIN-KM"/>
+        <Resource_16 FileName="tape/mont.bin" Type="RCDATA" ResourceName="BIN-MONT"/>
+        <Resource_17 FileName="tape/pirat.bin" Type="RCDATA" ResourceName="BIN-PIRAT"/>
+        <Resource_18 FileName="tape/kicks.bin" Type="RCDATA" ResourceName="BIN-KICKS"/>
+        <Resource_19 FileName="tape/voley.bin" Type="RCDATA" ResourceName="BIN-VOLEY"/>
+        <Resource_20 FileName="tape/tetris.bin" Type="RCDATA" ResourceName="BIN-TETRIS"/>
+        <Resource_21 FileName="tape/planeta.bin" Type="RCDATA" ResourceName="BIN-PLANETA"/>
+        <Resource_22 FileName="tape/goody.bin" Type="RCDATA" ResourceName="BIN-GOODY"/>
+        <Resource_23 FileName="tape/desant.bin" Type="RCDATA" ResourceName="BIN-DESANT"/>
+        <Resource_24 FileName="tape/stroika.bin" Type="RCDATA" ResourceName="BIN-STROIKA"/>
+        <Resource_25 FileName="tape/polet.bin" Type="RCDATA" ResourceName="BIN-POLET"/>
+        <Resource_26 FileName="tape/cq.bin" Type="RCDATA" ResourceName="BIN-CQ"/>
+        <Resource_27 FileName="tape/pchela.bin" Type="RCDATA" ResourceName="BIN-PCHELA"/>
+        <Resource_28 FileName="tape/iskatel.bin" Type="RCDATA" ResourceName="BIN-ISKATEL"/>
+        <Resource_29 FileName="tape/reversi.bin" Type="RCDATA" ResourceName="BIN-REVERSI"/>
+      </Resources>
+    </General>
+    <BuildModes>
+      <Item Name="Default" Default="True"/>
+      <Item Name="Debug">
+        <CompilerOptions>
+          <Version Value="11"/>
+          <Target>
+            <Filename Value="bin/poisk-dbg"/>
+          </Target>
+          <SearchPaths>
+            <IncludeFiles Value="$(ProjOutDir)"/>
+            <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
+          </SearchPaths>
+          <Parsing>
+            <SyntaxOptions>
+              <IncludeAssertionCode Value="True"/>
+            </SyntaxOptions>
+          </Parsing>
+          <CodeGeneration>
+            <Checks>
+              <IOChecks Value="True"/>
+              <RangeChecks Value="True"/>
+              <OverflowChecks Value="True"/>
+              <StackChecks Value="True"/>
+            </Checks>
+            <VerifyObjMethodCallValidity Value="True"/>
+          </CodeGeneration>
+          <Linking>
+            <Debugging>
+              <DebugInfoType Value="dsDwarf3"/>
+              <UseHeaptrc Value="True"/>
+              <TrashVariables Value="True"/>
+            </Debugging>
+          </Linking>
+        </CompilerOptions>
+      </Item>
+      <Item Name="Release">
+        <CompilerOptions>
+          <Version Value="11"/>
+          <Target>
+            <Filename Value="bin/poisk-$(TargetOS)-$(TargetCPU)"/>
+          </Target>
+          <SearchPaths>
+            <IncludeFiles Value="$(ProjOutDir)"/>
+            <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
+          </SearchPaths>
+          <CodeGeneration>
+            <SmartLinkUnit Value="True"/>
+            <Optimizations>
+              <OptimizationLevel Value="3"/>
+            </Optimizations>
+          </CodeGeneration>
+          <Linking>
+            <Debugging>
+              <GenerateDebugInfo Value="False"/>
+              <RunWithoutDebug Value="True"/>
+              <StripSymbols Value="True"/>
+            </Debugging>
+            <LinkSmart Value="True"/>
+          </Linking>
+        </CompilerOptions>
+      </Item>
+    </BuildModes>
+    <PublishOptions>
+      <Version Value="2"/>
+      <UseFileFilters Value="True"/>
+    </PublishOptions>
+    <RunParams>
+      <FormatVersion Value="2"/>
+    </RunParams>
+    <RequiredPackages>
+      <Item>
+        <PackageName Value="ray4laz"/>
+      </Item>
+      <Item>
+        <PackageName Value="pas8088"/>
+      </Item>
+    </RequiredPackages>
+    <Units>
+      <Unit>
+        <Filename Value="poisk.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Poisk"/>
+      </Unit>
+      <Unit>
+        <Filename Value="buffers.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Buffers"/>
+      </Unit>
+      <Unit>
+        <Filename Value="debugger.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Debugger"/>
+      </Unit>
+    </Units>
+  </ProjectOptions>
+  <CompilerOptions>
+    <Version Value="11"/>
+    <Target>
+      <Filename Value="bin/poisk"/>
+    </Target>
+    <SearchPaths>
+      <IncludeFiles Value="$(ProjOutDir)"/>
+      <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
+    </SearchPaths>
+    <Linking>
+      <Debugging>
+        <DebugInfoType Value="dsDwarf3"/>
+      </Debugging>
+    </Linking>
+  </CompilerOptions>
+  <Debugging>
+    <Exceptions>
+      <Item>
+        <Name Value="EAbort"/>
+      </Item>
+      <Item>
+        <Name Value="ECodetoolError"/>
+      </Item>
+      <Item>
+        <Name Value="EFOpenError"/>
+      </Item>
+    </Exceptions>
+  </Debugging>
+</CONFIG>

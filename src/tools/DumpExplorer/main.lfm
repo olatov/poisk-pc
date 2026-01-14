@@ -1,0 +1,372 @@
+object Form1: TForm1
+  Left = 200
+  Height = 1242
+  Top = 137
+  Width = 2790
+  Caption = 'Dump Explorer'
+  ClientHeight = 1242
+  ClientWidth = 2790
+  Color = clGray
+  DesignTimePPI = 216
+  OnClose = FormClose
+  OnCreate = FormCreate
+  OnShow = FormShow
+  object PrevButton: TButton
+    Left = 32
+    Height = 65
+    Top = 24
+    Width = 187
+    Caption = '< Prev'
+    TabOrder = 0
+    OnClick = PrevButtonClick
+  end
+  object NextButton: TButton
+    Left = 744
+    Height = 68
+    Top = 21
+    Width = 184
+    Caption = 'Next >'
+    TabOrder = 1
+    OnClick = NextButtonClick
+  end
+  object CurrentIndexSpinEdit: TSpinEdit
+    Left = 424
+    Height = 66
+    Top = 24
+    Width = 256
+    MaxValue = 1000000000
+    TabOrder = 2
+    OnChange = CurrentIndexSpinEditChange
+  end
+  object Label1: TLabel
+    Left = 280
+    Height = 46
+    Top = 24
+    Width = 108
+    Caption = 'Frame:'
+  end
+  object CSIPEdit: TEdit
+    Left = 272
+    Height = 78
+    Top = 152
+    Width = 256
+    Font.Height = -42
+    Font.Name = 'Monospace'
+    Font.Pitch = fpFixed
+    ParentFont = False
+    ReadOnly = True
+    TabOrder = 3
+    Text = 'CSIPEdit'
+  end
+  object GP16RegistersView1: TStringGrid
+    Left = 24
+    Height = 272
+    Top = 296
+    Width = 1384
+    ColCount = 10
+    Columns = <    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'Reg'
+      end    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'Hex'
+      end    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'Int'
+      end    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'UInt'
+      end    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'Hi (H)'
+        Width = 128
+      end    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'Hi (I)'
+        Width = 128
+      end    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'Hi (U)'
+        Width = 128
+      end    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'Lo (H)'
+        Width = 128
+      end    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'Lo (I)'
+        Width = 128
+      end    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'LO(U)'
+      end>
+    FixedCols = 0
+    Font.Height = -30
+    Font.Name = 'Monospace'
+    ParentFont = False
+    TabOrder = 4
+  end
+  object GP16RegistersView2: TStringGrid
+    Left = 816
+    Height = 264
+    Top = 600
+    Width = 584
+    ColCount = 4
+    Columns = <    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'Reg'
+      end    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'Hex'
+      end    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'Int'
+      end    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'UInt'
+      end>
+    FixedCols = 0
+    Font.Height = -30
+    Font.Name = 'Monospace'
+    ParentFont = False
+    TabOrder = 5
+  end
+  object SegRegistersView: TStringGrid
+    Left = 24
+    Height = 264
+    Top = 608
+    Width = 592
+    ColCount = 4
+    Columns = <    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'Reg'
+      end    
+      item
+        Alignment = taRightJustify
+        Title.Alignment = taCenter
+        Title.Caption = 'Hex'
+      end    
+      item
+        Alignment = taRightJustify
+        Title.Alignment = taCenter
+        Title.Caption = 'Int'
+      end    
+      item
+        Alignment = taRightJustify
+        Title.Alignment = taCenter
+        Title.Caption = 'UInt'
+      end>
+    FixedCols = 0
+    Font.Height = -30
+    Font.Name = 'Monospace'
+    ParentFont = False
+    TabOrder = 6
+  end
+  object FlagsView: TStringGrid
+    Left = 728
+    Height = 128
+    Top = 136
+    Width = 608
+    ColCount = 10
+    Columns = <    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'A'
+      end    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'C'
+      end    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'D'
+      end    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'I'
+      end    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'O'
+      end    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'P'
+      end    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'T'
+      end    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'S'
+      end    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'Z'
+      end    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'Hex'
+        Width = 128
+      end>
+    DefaultColWidth = 48
+    FixedCols = 0
+    Font.Height = -30
+    Font.Name = 'Monospace'
+    ParentFont = False
+    RowCount = 2
+    TabOrder = 7
+  end
+  object PhysicalAddr: TEdit
+    Left = 32
+    Height = 78
+    Top = 152
+    Width = 200
+    Font.Height = -42
+    Font.Name = 'Monospace'
+    Font.Pitch = fpFixed
+    ParentFont = False
+    ReadOnly = True
+    TabOrder = 8
+    Text = 'PhysicalAddr'
+  end
+  object CodeEdit: TEdit
+    Left = 1440
+    Height = 78
+    Top = 136
+    Width = 544
+    Font.Height = -42
+    Font.Name = 'Monospace'
+    Font.Pitch = fpFixed
+    ParentFont = False
+    ReadOnly = True
+    TabOrder = 9
+    Text = 'CodeEdit'
+  end
+  object ListingMemo: TMemo
+    Left = 1440
+    Height = 568
+    Top = 296
+    Width = 971
+    Font.Name = 'Monospace'
+    Lines.Strings = (
+      'Listing'
+    )
+    ParentFont = False
+    TabOrder = 10
+  end
+  object DisassembleCheckBox: TCheckBox
+    Left = 1440
+    Height = 50
+    Top = 237
+    Width = 232
+    Caption = 'Disassemble'
+    Checked = True
+    State = cbChecked
+    TabOrder = 11
+    OnChange = DisassembleCheckBoxChange
+  end
+  object Edit1: TEdit
+    Left = 2496
+    Height = 66
+    Top = 40
+    Width = 243
+    TabOrder = 12
+    OnKeyDown = Edit1KeyDown
+  end
+  object StackView: TStringGrid
+    Left = 2440
+    Height = 568
+    Top = 296
+    Width = 312
+    ColCount = 2
+    Columns = <    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'Addr'
+      end    
+      item
+        Alignment = taCenter
+        Title.Alignment = taCenter
+        Title.Caption = 'Value'
+      end>
+    FixedCols = 0
+    Font.Height = -30
+    Font.Name = 'Monospace'
+    ParentFont = False
+    RowCount = 9
+    TabOrder = 13
+  end
+  object BreakpointsMemo: TMemo
+    Left = 24
+    Height = 290
+    Top = 920
+    Width = 588
+    TabOrder = 14
+    OnChange = BreakpointsMemoChange
+  end
+  object RunButton: TButton
+    Left = 1016
+    Height = 68
+    Top = 24
+    Width = 184
+    Caption = 'Run >>'
+    TabOrder = 15
+    OnClick = RunButtonClick
+  end
+  object CRCEdit: TEdit
+    Left = 568
+    Height = 78
+    Top = 152
+    Width = 136
+    Font.Height = -42
+    Font.Name = 'Monospace'
+    Font.Pitch = fpFixed
+    ParentFont = False
+    ReadOnly = True
+    TabOrder = 16
+    Text = 'CRCEdit'
+  end
+end

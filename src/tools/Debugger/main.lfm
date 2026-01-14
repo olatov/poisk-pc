@@ -1,0 +1,308 @@
+object MainForm: TMainForm
+  Left = 200
+  Height = 1089
+  Top = 100
+  Width = 2670
+  Caption = 'Debugger'
+  ClientHeight = 1089
+  ClientWidth = 2670
+  Color = clSilver
+  DesignTimePPI = 216
+  OnCreate = FormCreate
+  object PageControl1: TPageControl
+    Left = 16
+    Height = 952
+    Top = 104
+    Width = 1576
+    ActivePage = TabSheet1
+    TabIndex = 0
+    TabOrder = 0
+    object TabSheet1: TTabSheet
+      Caption = 'Registers'
+      ClientHeight = 886
+      ClientWidth = 1570
+      object Registers16Grid: TStringGrid
+        Left = 8
+        Height = 864
+        Top = 8
+        Width = 653
+        AutoFillColumns = True
+        ColCount = 4
+        Columns = <        
+          item
+            Alignment = taCenter
+            Title.Alignment = taCenter
+            Title.Caption = 'Reg'
+            Width = 163
+          end        
+          item
+            Alignment = taCenter
+            Title.Alignment = taCenter
+            Title.Caption = 'Hex'
+            Width = 163
+          end        
+          item
+            Alignment = taCenter
+            Title.Alignment = taCenter
+            Title.Caption = 'Int'
+            Width = 163
+          end        
+          item
+            Alignment = taCenter
+            Title.Alignment = taCenter
+            Title.Caption = 'UInt'
+            Width = 162
+          end>
+        FixedCols = 0
+        Font.Height = 36
+        Font.Name = 'Consolas'
+        ParentFont = False
+        RowCount = 15
+        TabOrder = 0
+        ColWidths = (
+          163
+          163
+          163
+          162
+        )
+      end
+      object Registers8Grid: TStringGrid
+        Left = 672
+        Height = 520
+        Top = 8
+        Width = 608
+        AutoFillColumns = True
+        ColCount = 4
+        Columns = <        
+          item
+            Alignment = taCenter
+            Title.Alignment = taCenter
+            Title.Caption = 'Reg'
+            Width = 152
+          end        
+          item
+            Alignment = taCenter
+            Title.Alignment = taCenter
+            Title.Caption = 'Hex'
+            Width = 152
+          end        
+          item
+            Alignment = taCenter
+            Title.Alignment = taCenter
+            Title.Caption = 'Int'
+            Width = 151
+          end        
+          item
+            Alignment = taCenter
+            Title.Alignment = taCenter
+            Title.Caption = 'UInt'
+            Width = 151
+          end>
+        FixedCols = 0
+        Font.Height = 36
+        Font.Name = 'Consolas'
+        ParentFont = False
+        RowCount = 9
+        TabOrder = 1
+        ColWidths = (
+          152
+          152
+          151
+          151
+        )
+      end
+      object FlagsGrid: TStringGrid
+        Left = 1296
+        Height = 520
+        Top = 8
+        Width = 256
+        AutoFillColumns = True
+        ColCount = 2
+        Columns = <        
+          item
+            Alignment = taCenter
+            Title.Alignment = taCenter
+            Title.Caption = 'Flag'
+            Width = 127
+          end        
+          item
+            Alignment = taCenter
+            Title.Alignment = taCenter
+            Title.Caption = 'Bit'
+            Width = 127
+          end>
+        FixedCols = 0
+        Font.Height = 36
+        Font.Name = 'Consolas'
+        ParentFont = False
+        RowCount = 9
+        TabOrder = 2
+        ColWidths = (
+          127
+          127
+        )
+      end
+    end
+    object TabSheet2: TTabSheet
+      Caption = 'Memory'
+      ClientHeight = 886
+      ClientWidth = 1570
+      object SegEdit: TLabeledEdit
+        Left = 16
+        Height = 66
+        Top = 56
+        Width = 186
+        EditLabel.Height = 46
+        EditLabel.Width = 186
+        EditLabel.Caption = 'Segment'
+        TabOrder = 0
+        Text = '0'
+      end
+      object OffEdit: TLabeledEdit
+        Left = 248
+        Height = 66
+        Top = 56
+        Width = 186
+        EditLabel.Height = 46
+        EditLabel.Width = 186
+        EditLabel.Caption = 'Offset'
+        TabOrder = 1
+        Text = '0'
+      end
+      object LoadMemButton: TButton
+        Left = 480
+        Height = 63
+        Top = 56
+        Width = 192
+        Caption = 'Load'
+        TabOrder = 2
+        OnClick = LoadMemButtonClick
+      end
+      object MemHexMemo: TMemo
+        Left = 16
+        Height = 723
+        Top = 149
+        Width = 1534
+        Font.Name = 'Consolas'
+        Lines.Strings = (
+          'MemHexMemo'
+        )
+        ParentFont = False
+        TabOrder = 3
+      end
+    end
+    object TabSheet3: TTabSheet
+      Caption = 'Stack'
+      ClientHeight = 886
+      ClientWidth = 1570
+      object StackGrid: TStringGrid
+        Left = 8
+        Height = 864
+        Top = 8
+        Width = 653
+        AutoFillColumns = True
+        ColCount = 2
+        Columns = <        
+          item
+            Alignment = taCenter
+            Title.Alignment = taCenter
+            Title.Caption = 'Addr'
+            Width = 325
+          end        
+          item
+            Alignment = taCenter
+            Title.Alignment = taCenter
+            Title.Caption = 'Value'
+            Width = 324
+          end>
+        FixedCols = 0
+        Font.Height = 36
+        Font.Name = 'Consolas'
+        ParentFont = False
+        RowCount = 15
+        TabOrder = 0
+        ColWidths = (
+          325
+          324
+        )
+      end
+    end
+  end
+  object RefreshButton: TButton
+    Left = 2264
+    Height = 76
+    Top = 20
+    Width = 331
+    Caption = 'Refresh'
+    TabOrder = 1
+    OnClick = RefreshButtonClick
+  end
+  object CodeMemo: TMemo
+    Left = 1656
+    Height = 896
+    Top = 168
+    Width = 959
+    Font.Height = 30
+    Font.Name = 'Consolas'
+    Lines.Strings = (
+      'CodeMemo'
+    )
+    ParentFont = False
+    TabOrder = 2
+  end
+  object StepByStepToggle: TToggleBox
+    Left = 1648
+    Height = 79
+    Top = 20
+    Width = 272
+    Caption = 'Step by step'
+    TabOrder = 3
+    OnChange = StepByStepToggleChange
+  end
+  object StepButton: TButton
+    Left = 1960
+    Height = 79
+    Top = 20
+    Width = 262
+    Caption = 'Step'
+    Enabled = False
+    TabOrder = 4
+    OnClick = StepButtonClick
+  end
+  object ExecutionModeLabel: TLabel
+    Left = 384
+    Height = 46
+    Top = 20
+    Width = 324
+    Caption = 'ExecutionModeLabel'
+  end
+  object CSIPEdit: TEdit
+    Left = 32
+    Height = 62
+    Top = 20
+    Width = 316
+    Alignment = taCenter
+    Font.Name = 'Consolas'
+    ParentFont = False
+    ReadOnly = True
+    TabOrder = 5
+    Text = 'CSIPEdit'
+  end
+  object BreakOnEdit: TEdit
+    Left = 944
+    Height = 66
+    Top = 20
+    Width = 272
+    TabOrder = 6
+    Text = '0'
+  end
+  object BreakOnButton: TButton
+    Left = 1232
+    Height = 65
+    Top = 20
+    Width = 275
+    Caption = 'Break on'
+    TabOrder = 7
+    OnClick = BreakOnButtonClick
+  end
+end

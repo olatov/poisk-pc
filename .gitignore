@@ -1,0 +1,16 @@
+*.bin
+*.wav
+*.img
+*.dll
+*.res
+*.log
+*.o
+*.or
+*.ppu
+*.lps
+*.cart
+*.dump
+backup/
+bin/
+lib/
+
