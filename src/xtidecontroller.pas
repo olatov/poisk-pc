@@ -500,6 +500,8 @@ begin
 end;
 
 procedure TXTIDEController.AdvanceAddressOneSector;
+var
+  TempHead: Byte;
 begin
   { advance to next sector in taskfile }
   if (FRegDriveHead and $40) <> 0 then
@@ -523,13 +525,14 @@ begin
     if FRegSectorNumber > GetCHSSectorsPerTrack then
     begin
       FRegSectorNumber := 1;
-      FRegDriveHead := (FRegDriveHead and $F0) or ((FRegDriveHead + 1) and $0F);
-      if (FRegDriveHead and $0F) >= GetCHSHeads then
+      TempHead := (FRegDriveHead and $0F) + 1;
+      if TempHead >= GetCHSHeads then
       begin
-        FRegDriveHead := (FRegDriveHead and $F0);
+        TempHead := 0;
         Inc(FRegCylLow);
         if FRegCylLow = 0 then Inc(FRegCylHigh);
       end;
+      FRegDriveHead := (FRegDriveHead and $F0) or TempHead;
     end;
   end;
 end;
@@ -661,6 +664,21 @@ begin
     Exit;
   end;
 
+  Trace(Format('Writing sector LBA %d (CHS %d:%d:%d)', [ALBA, ALBA div (16*63), (ALBA div 63) mod 16, (ALBA mod 63) + 1]));
+  if ALBA = 0 then
+  begin
+    Trace(Format('Boot sector data: %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s',
+      [IntToHex(AData[0], 2), IntToHex(AData[1], 2), IntToHex(AData[2], 2), IntToHex(AData[3], 2),
+       IntToHex(AData[4], 2), IntToHex(AData[5], 2), IntToHex(AData[6], 2), IntToHex(AData[7], 2),
+       IntToHex(AData[8], 2), IntToHex(AData[9], 2), IntToHex(AData[10], 2), IntToHex(AData[11], 2),
+       IntToHex(AData[12], 2), IntToHex(AData[13], 2), IntToHex(AData[14], 2), IntToHex(AData[15], 2)]));
+  end;
+  if ALBA = 988 then
+  begin
+    Trace('Writing to suspected LBA 988');
+    Trace(Format('Data: %s %s %s %s', [IntToHex(AData[0], 2), IntToHex(AData[1], 2), IntToHex(AData[2], 2), IntToHex(AData[3], 2)]));
+  end;
+
   Pos := Int64(ALBA) * DiskSectorSize;
   Needed := Pos + DiskSectorSize;
   if Needed > FDisk.Size then
@@ -692,6 +710,8 @@ begin
 end;
 
 function TXTIDEController.ReadRegister(AOffset: Word): Byte;
+var
+  TempHead: Byte;
 begin
   case AOffset of
     ATA_REG_DATA:
@@ -725,13 +745,14 @@ begin
               if FRegSectorNumber > GetCHSSectorsPerTrack then
               begin
                 FRegSectorNumber := 1;
-                FRegDriveHead := (FRegDriveHead and $F0) or ((FRegDriveHead + 1) and $0F);
-                if (FRegDriveHead and $0F) >= GetCHSHeads then
+                TempHead := (FRegDriveHead and $0F) + 1;
+                if TempHead >= GetCHSHeads then
                 begin
-                  FRegDriveHead := (FRegDriveHead and $F0);
+                  TempHead := 0;
                   Inc(FRegCylLow);
                   if FRegCylLow = 0 then Inc(FRegCylHigh);
                 end;
+                FRegDriveHead := (FRegDriveHead and $F0) or TempHead;
               end;
             end;
 
