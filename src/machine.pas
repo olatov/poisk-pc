@@ -6,7 +6,8 @@ interface
 
 uses
   Classes, SysUtils,
-  Cpu8088, VideoController, Hardware, Timer, Cassette, FloppyDiskController;
+  Cpu8088, VideoController, Hardware, Timer, Cassette,
+  FloppyDiskController, XTIDEController;
 
 type
 
@@ -28,6 +29,7 @@ type
     FVideo: TVideoController;
     FTimer: TPit8253;
     FMemory: specialize TArray<IMemoryBusDevice>;
+    FXTIDEController: TXTIDEController;
     procedure SetCassetteDrive(AValue: TCassetteDrive);
     procedure SetCpu(AValue: TCpu8088);
     procedure SetExecutionMode(AValue: TExecutionMode);
@@ -37,6 +39,7 @@ type
     procedure SetMemoryBus(AValue: IMemoryBus);
     procedure OnTimerOutputChange(ASender: TObject; AChannel: Integer; AValue: Boolean);
     procedure SetTicks(AValue: QWord);
+    procedure SetXTIDEController(AValue: TXTIDEController);
   published
     property Ticks: QWord read FTicks write SetTicks;
     property ExecutionMode: TExecutionMode read FExecutionMode write SetExecutionMode;
@@ -52,6 +55,7 @@ type
     property InterrptController: IInterruptController read FInterrptController write SetInterrptController;
     property CassetteDrive: TCassetteDrive read FCassetteDrive write SetCassetteDrive;
     property FloppyDiskController: TFloppyDiskController read FFloppyDiskController write SetFloppyDiskController;
+    property XTIDEController: TXTIDEController read FXTIDEController write SetXTIDEController;
     procedure Tick;
     procedure Run(ATicks: Integer=1000);
     procedure Reset;
@@ -121,6 +125,12 @@ procedure TMachine.SetTicks(AValue: QWord);
 begin
   if FTicks = AValue then Exit;
   FTicks := AValue;
+end;
+
+procedure TMachine.SetXTIDEController(AValue: TXTIDEController);
+begin
+  if FXTIDEController = AValue then Exit;
+  FXTIDEController := AValue;
 end;
 
 procedure TMachine.Tick;
@@ -237,6 +247,9 @@ begin
 
   if Assigned(FloppyDiskController) then
     IOBus.AttachDevice(FloppyDiskController);
+
+  if Assigned(XTIDEController) then
+    IOBus.AttachDevice(XTIDEController);
 
   for MemoryBlock in FMemory do
     MemoryBus.AttachDevice(MemoryBlock);

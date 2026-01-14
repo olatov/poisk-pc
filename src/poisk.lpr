@@ -15,9 +15,11 @@ uses
   Windows,
   {$EndIf}
   Classes, SysUtils, StrUtils, Math, StreamEx, BufStream, Generics.Collections,
-  CustApp, RayLib, RayMath, Cpu8088, Memory, IO, Machine, VideoController,
+  System.IOUtils, CustApp,
+  RayLib, RayMath,
+  Cpu8088, Memory, IO, Machine, VideoController,
   Interrupts, Hardware, Keyboard, Dump, Timer, AppSettings, Cassette,
-  FloppyDiskController, Buffers, Debugger;
+  FloppyDiskController, Buffers, Debugger, XTIDEController;
 
 const
   Version = '0.1';
@@ -33,6 +35,7 @@ const
   VideoAddress  = $B8000;
   CartAddress   = $C0000;
   FdcRomAddress = $E0000;
+  XtIdeRomAddress = $E2000;
 
   DumpFile = '';
   DumpBios = False;
@@ -151,8 +154,8 @@ function TApplication.BuildMachine: TMachine;
 var
   BiosRomBlock, FdcRomBlock: TRomMemoryBlock;
   SystemRam, VideoRam: TRamMemoryBlock;
-  CartRomBlock: TRomMemoryBlock;
-  FdcRomStream: TFileStream;
+  CartRomBlock, XTIDERomBlock: TRomMemoryBlock;
+  FdcRomStream, XTIDERomStream: TFileStream;
   VideoController: TVideoController;
   I: Integer;
 begin
@@ -215,7 +218,7 @@ begin
   { Floppy disk }
   if Settings.FloppyDisk.Enabled and (Length(FFloppyDiskStreams) > 0) then
   begin
-    FdcRomStream := TFileStream.Create(Settings.FloppyDisk.ControllerRom, fmOpenRead);
+    FdcRomStream := TFile.OpenRead(Settings.FloppyDisk.ControllerRom);
     try
       FdcRomBlock := TRomMemoryBlock.Create(Result, FdcRomStream.Size, FdcRomAddress);
       FdcRomBlock.LoadFromStream(FdcRomStream);
@@ -228,6 +231,16 @@ begin
     for I := 0 to High(FFloppyDiskStreams) do
       Result.FloppyDiskController.InsertDisk(I, FFloppyDiskStreams[I]);
   end;
+
+  XTIDERomStream := TFile.OpenRead('rom/ide-poisk.bin');
+  try
+    XTIDERomBlock := TRomMemoryBlock.Create(Result, XTIDERomStream.Size, XtIdeRomAddress);
+    XTIDERomBlock.LoadFromStream(XTIDERomStream);
+    Result.AddMemory(XTIDERomBlock);
+  finally
+    FreeAndNil(XTIDERomStream);
+  end;
+  Result.XTIDEController := TXTIDEController.Create(Result);
 
   Result.Initialize;
 

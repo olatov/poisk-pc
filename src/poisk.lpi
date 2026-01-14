@@ -138,6 +138,21 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="Debugger"/>
       </Unit>
+      <Unit>
+        <Filename Value="keyboard.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Keyboard"/>
+      </Unit>
+      <Unit>
+        <Filename Value="appsettings.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="AppSettings"/>
+      </Unit>
+      <Unit>
+        <Filename Value="xtidecontroller.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="XTIDEController"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
