@@ -22,7 +22,7 @@ uses
   FloppyDiskController, Buffers, Debugger, XTIDEController;
 
 const
-  Version = '0.1';
+  Version = '0.9';
   FPS = 50;
 
   SpeakerSampleRate = 44100;
@@ -30,12 +30,12 @@ const
 
   DBG = False;
 
-  RamAddress    = $00000;
-  BiosAddress   = $FE000;
-  VideoAddress  = $B8000;
-  CartAddress   = $C0000;
-  FdcRomAddress = $E0000;
-  XtIdeRomAddress = $E2000;
+  RamAddress      = $00000;
+  BiosAddress     = $FE000;
+  VideoAddress    = $B8000;
+  CartAddress     = $C0000;
+  FdcRomAddress   = $E0000;
+  XTIDERomAddress = $E2000;
 
   DumpFile = '';
   DumpBios = False;
@@ -65,7 +65,6 @@ type
     property Debugger: TWebDebugger read FDebugger write SetDebugger;
     procedure DumpMemory(AFileName: String; AMemoryBus: IMemoryBus;
       AAddress: TPhysicalAddress; ALength: Integer);
-    procedure HandleCommandLine;
     procedure HandleReadFromTape;
     procedure HandleWriteToTape;
     function LoadFontFromResource(const AResourceName: String;
@@ -76,6 +75,19 @@ type
   public
     type
       TKeyboardMap = specialize TDictionary<TKeyboard.TKey, specialize TArray<RayLib.TKeyboardKey>>;
+
+      { TConfiguration }
+
+      TConfiguration = class
+        RamSize: Integer;
+        BiosRom, FdcRom, XTIDERom: TStream;
+        Tape: TStream;
+        Cartridge: TStream;
+        FloppyDiskA, FloppyDiskB: TStream;
+        HardDiskMaster, HardDiskSlave: TStream;
+        constructor Create;
+        destructor Destroy; override;
+      end;
   public
     FAudioBuffer: TRingBuffer;
     FTarget: TRenderTexture;
@@ -87,7 +99,7 @@ type
     FWorkingFileName: String;
     FKeyboardMap: TKeyboardMap;
     FKeyboard: TKeyboard;
-    FBiosRomStream, FTapeStream, FBinStream, FCartridgeStream: TStream;
+    FTapeStream: TStream;
     FFloppyDiskStreams: specialize TArray<TStream>;
     FComputer: TMachine;
     FLastAudioSampleTime: Double;
@@ -104,7 +116,8 @@ type
     function HandleBootstrap(const Cpu: TCpu8088): Boolean;
     function HandleDiskIO: Boolean;
     procedure UpdateKeyboard(AKeyboard: TKeyboard);
-    function BuildMachine: TMachine;
+    function BuildConfiguration: TConfiguration;
+    function BuildMachine(Configuration: TConfiguration): TMachine;
     procedure ToggleFullscreen;
     procedure PrintOsd(AText: String; AColor: TColorB);
     procedure PrintOsd(AText: String);
@@ -123,34 +136,33 @@ type
 
   procedure AudioCallback(Buffer: Pointer; Frames: LongWord); cdecl; forward;
 
+{ TApplication.TConfiguration }
+
+constructor TApplication.TConfiguration.Create;
+begin
+  RamSize := 640;
+end;
+
+destructor TApplication.TConfiguration.Destroy;
+begin
+  inherited Destroy;
+  FreeAndNil(BiosRom);
+  FreeAndNil(FdcRom);
+  FreeAndNil(XTIDERom);
+  FreeAndNil(Cartridge);
+end;
+
 { TApplication }
 
 procedure TApplication.DoRun;
-var
-  ErrorMsg: String;
 begin
-  // quick check parameters
-  ErrorMsg := CheckOptions('h', 'help');
-  if ErrorMsg <> '' then begin
-    ShowException(Exception.Create(ErrorMsg));
-    Terminate;
-    Exit;
-  end;
-
-  // parse parameters
-  if HasOption('h', 'help') then begin
-    WriteHelp;
-    Terminate;
-    Exit;
-  end;
-
   RunMachine;
 
   // stop program loop
   Terminate;
 end;
 
-function TApplication.BuildMachine: TMachine;
+function TApplication.BuildMachine(Configuration: TConfiguration): TMachine;
 var
   BiosRomBlock, FdcRomBlock: TRomMemoryBlock;
   SystemRam, VideoRam: TRamMemoryBlock;
@@ -177,10 +189,12 @@ begin
   Result.MemoryBus := TMemoryBus.Create(Result);
 
   { System SystemRam = Total - 32 KB video }
-  SystemRam := TRamMemoryBlock.Create(Result, 1024 * (Settings.Machine.Ram - 32), RamAddress);
+  SystemRam := TRamMemoryBlock.Create(
+    Result, 1024 * (Configuration.RamSize - 32), RamAddress);
   Result.AddMemory(SystemRam);
 
   BiosRomBlock := TRomMemoryBlock.Create(Result, 1024 * 8, BiosAddress);
+  BiosRomBlock.LoadFromStream(Configuration.BiosRom);
   Result.AddMemory(BiosRomBlock);
 
   VideoRam := TRamMemoryBlock.Create(Result, 1024 * 32, VideoAddress);
@@ -201,55 +215,47 @@ begin
 
   { Cassette drive }
   Result.CassetteDrive := TCassetteDrive.Create(Result);
+  if Assigned(Configuration.Tape) then
+    FTapeStream := Configuration.Tape;
 
-  { ROM cartridge disk }
-  if Assigned(FCartridgeStream) then
+  { Cartridge ROM }
+  if Assigned(Configuration.Cartridge) then
   begin
     CartRomBlock := TRomMemoryBlock.Create(
-      Result, FCartridgeStream.Size, CartAddress);
+      Result, Configuration.Cartridge.Size, CartAddress);
     Result.AddMemory(CartRomBlock);
-    try
-      CartRomBlock.LoadFromStream(FCartridgeStream);
-    finally
-      FreeAndNil(FCartridgeStream);
-    end;
+    CartRomBlock.LoadFromStream(Configuration.Cartridge);
   end;
 
   { Floppy disk }
-  if Settings.FloppyDisk.Enabled and (Length(FFloppyDiskStreams) > 0) then
+  if Assigned(Configuration.FloppyDiskA) or Assigned(Configuration.FloppyDiskB) then
   begin
-    FdcRomStream := TFile.OpenRead(Settings.FloppyDisk.ControllerRom);
-    try
-      FdcRomBlock := TRomMemoryBlock.Create(Result, FdcRomStream.Size, FdcRomAddress);
-      FdcRomBlock.LoadFromStream(FdcRomStream);
-      Result.AddMemory(FdcRomBlock);
-    finally
-      FreeAndNil(FdcRomStream);
-    end;
+    FdcRomBlock := TRomMemoryBlock.Create(Result, Configuration.FdcRom.Size, FdcRomAddress);
+    FdcRomBlock.LoadFromStream(Configuration.FdcRom);
+    Result.AddMemory(FdcRomBlock);
 
     Result.FloppyDiskController := TFloppyDiskController.Create(Result);
-    for I := 0 to High(FFloppyDiskStreams) do
-      Result.FloppyDiskController.InsertDisk(I, FFloppyDiskStreams[I]);
+    if Assigned(Configuration.FloppyDiskA) then
+      Result.FloppyDiskController.InsertDisk(0, Configuration.FloppyDiskA);
+    if Assigned(Configuration.FloppyDiskB) then
+      Result.FloppyDiskController.InsertDisk(1, Configuration.FloppyDiskB);
   end;
 
-  XTIDERomStream := TFile.OpenRead('rom/ide-poisk.bin');
-  try
-    XTIDERomBlock := TRomMemoryBlock.Create(Result, XTIDERomStream.Size, XtIdeRomAddress);
-    XTIDERomBlock.LoadFromStream(XTIDERomStream);
+  if Assigned(Configuration.HardDiskMaster) or Assigned(Configuration.HardDiskSlave) then
+  begin
+    XTIDERomBlock := TRomMemoryBlock.Create(Result, Configuration.XTIDERom.Size, XTIDERomAddress);
+    XTIDERomBlock.LoadFromStream(Configuration.XTIDERom);
     Result.AddMemory(XTIDERomBlock);
-  finally
-    FreeAndNil(XTIDERomStream);
+    Result.XTIDEController := TXTIDEController.Create(Result);
+
+    if Assigned(Configuration.HardDiskMaster) then
+      Result.XTIDEController.AttachMasterDisk(Configuration.HardDiskMaster, True);
+
+    if Assigned(Configuration.HardDiskSlave) then
+      Result.XTIDEController.AttachSlaveDisk(Configuration.HardDiskSlave, True);
   end;
-  Result.XTIDEController := TXTIDEController.Create(Result);
 
   Result.Initialize;
-
-  if Assigned(FBiosRomStream) then
-    try
-      BiosRomBlock.LoadFromStream(FBiosRomStream);
-    finally
-      FreeAndNil(FBiosRomStream);
-    end;
 end;
 
 procedure TApplication.ToggleFullscreen;
@@ -340,18 +346,17 @@ begin
 end;
 
 procedure TApplication.Initialize;
+var
+  ErrorMsg, Value: String;
+  ValueItems: array of String;
+  Configuration: TConfiguration;
 begin
   inherited Initialize;
 
   FOsdTextItems := TOsdTextList.Create;
   PrintOsd(Format('POISK v%s', [Version]));
 
-  HandleCommandLine;
-
   FAudioBuffer := TRingBuffer.Create(Self, (SpeakerSampleRate div 4) - 1);
-
-  if not Settings.Machine.BiosRom.IsEmpty then
-    FBiosRomStream := TFileStream.Create(Settings.Machine.BiosRom, fmOpenRead);
 
   InitAudioDevice;
 
@@ -364,8 +369,6 @@ begin
   InitWindow(640, 400, PChar(Title));
   SetTargetFPS(FPS);
   SetExitKey(KEY_NULL);
-
-  SetWindowSize(Settings.Window.Width, Settings.Window.Height);
 
   FTarget := LoadRenderTexture(640, 400);
 
@@ -381,89 +384,58 @@ begin
   FKeyboardMap := TKeyboardMap.Create;
   BuildKeyboardMap;
 
-  Computer := BuildMachine;
-end;
-
-procedure TApplication.HandleCommandLine;
-var
-  Option, Extension: String;
-  DiskStream: TStream;
-begin
-  for Option in GetNonOptions('', []) do
-  begin
-    Extension := LowerCase(ExtractFileExt(Option));
-    case Extension of
-      '.wav':
-        begin
-          try
-            FTapeStream := TFileStream.Create(Option, fmOpenRead);
-            FWorkingFileName := Option;
-            PrintOsd('[Tape] ' + FWorkingFileName);
-          except
-            on E: Exception do
-            begin
-              PrintOsd('[Tape] ' + E.Message);
-              FWorkingFileName := String.Empty;
-              FreeAndNil(FTapeStream);
-            end;
-          end;
-        end;
-
-      '.cart':
-        begin
-          FCartridgeStream := TMemoryStream.Create;
-          try
-            TMemoryStream(FCartridgeStream).LoadFromFile(Option);
-            FWorkingFileName := Option;
-            PrintOsd('[Cartridge] ' + FWorkingFileName);
-          except
-            on E: Exception do
-            begin
-              PrintOsd('[Cartridge] ' + E.Message);
-              FWorkingFileName := String.Empty;
-              FreeAndNil(FCartridgeStream);
-            end;
-          end;
-        end;
-
-      '.bin':
-        begin
-          FBinStream := TMemoryStream.Create;
-          try
-            TMemoryStream(FBinStream).LoadFromFile(Option);
-            FWorkingFileName := Option;
-            PrintOsd('[BIN] ' + FWorkingFileName);
-          except
-            on E: Exception do
-            begin
-              PrintOsd('[BIN] ' + E.Message);
-              FWorkingFileName := String.Empty;
-              FreeAndNil(FBinStream);
-            end;
-          end;
-        end;
-
-      '.img':
-        begin
-          DiskStream := TFileStream.Create(Option, fmOpenReadWrite);
-          try
-            Insert(DiskStream, FFloppyDiskStreams, Integer.MaxValue);
-            FWorkingFileName := Option;
-            PrintOsd('[FDD] ' + FWorkingFileName);
-          except
-            on E: Exception do
-            begin
-              PrintOsd('[FDD] ' + E.Message);
-              FWorkingFileName := String.Empty;
-              FreeAndNil(DiskStream);
-            end;
-          end;
-        end;
-
-    else
-      PrintOsd(Format('[Error] Unknown file: %s', [Option]));
-    end;
+  // quick check parameters
+  ErrorMsg := CheckOptions('h', [
+    'help', 'ramsize:', 'tape:', 'cartridge:',
+    'fda:', 'fdb:', 'hdmaster:', 'hdslave:',
+    'turbo', 'window:', 'aspect', 'grayscale', 'texture-filter', 'scanlines'
+  ]);
+  if ErrorMsg <> '' then begin
+    ShowException(Exception.Create(ErrorMsg));
+    Terminate;
+    Exit;
   end;
+
+  // parse parameters
+  if HasOption('h', 'help') then begin
+    WriteHelp;
+    Terminate;
+    Exit;
+  end;
+
+  Settings.Machine.Turbo := HasOption('turbo');
+  Settings.Video.GrayScale := HasOption('grayscale');
+  Settings.Video.ScanLines := HasOption('scanlines');
+  Settings.Video.TextureFilter := HasOption('texture-filter');
+
+  if HasOption('window') then
+  begin
+    Value := GetOptionValue('window');
+    Settings.Window.FullScreen := Value.Equals('full', True);
+    if not Settings.Window.FullScreen then
+    begin
+      ValueItems := Value.Split(['x'], TStringSplitOptions.ExcludeEmpty);
+      if Length(ValueItems) = 2 then
+      begin
+        Settings.Window.Width := StrToIntDef(ValueItems[0], 720);
+        Settings.Window.Height := StrToIntDef(ValueItems[1], 576);
+      end;
+    end;
+  end else
+  begin
+    Settings.Window.FullScreen := False;
+    Settings.Window.Width := 720;
+    Settings.Window.Height := 576;
+  end;
+
+  if HasOption('aspect') then
+    Settings.Window.AspectRatio := 4 / 3;
+
+  SetWindowSize(Settings.Window.Width, Settings.Window.Height);
+
+  Configuration := BuildConfiguration;
+  Computer := BuildMachine(Configuration);
+  FreeAndNil(Configuration);
 end;
 
 procedure TApplication.RunMachine;
@@ -867,6 +839,7 @@ var
   I: Integer;
 begin
   Result := False;
+  {
   if Assigned(FBinStream) then
   begin
     I := 0;
@@ -885,6 +858,7 @@ begin
     Cpu.Registers.SP := $FFFE;
     Result := True;
   end;
+  }
 end;
 
 function TApplication.HandleDiskIO: Boolean;
@@ -1091,6 +1065,40 @@ begin
     for RayLibKey in Item.Value do
       AKeyboard[Item.Key] := AKeyboard[Item.Key] or IsKeyDown(RayLibKey);
   end;
+end;
+
+function TApplication.BuildConfiguration: TConfiguration;
+begin
+  Result := TConfiguration.Create;
+  Result.BiosRom := TFile.OpenRead(SetDirSeparators('rom/bios-1991.rom'));
+  Result.FdcRom := TFile.OpenRead(SetDirSeparators('rom/fdc-b504.rom'));
+  Result.XTIDERom := TFile.OpenRead(SetDirSeparators('rom/xtide-poisk.rom'));
+
+  if HasOption('ramsize') then
+    Result.RamSize := EnsureRange(StrToIntDef(GetOptionValue('ramsize'), 640), 128, 640);
+
+  if HasOption('tape') then
+    Result.Tape := TFileStream.Create(
+      GetOptionValue('tape'), fmOpenRead or fmShareDenyWrite);
+
+  if HasOption('cartridge') then
+    Result.Cartridge := TFile.OpenRead(GetOptionValue('cartridge'));
+
+  if HasOption('fda') then
+    Result.FloppyDiskA := TFileStream.Create(
+      GetOptionValue('fda'), fmOpenReadWrite or fmShareDenyWrite);
+
+  if HasOption('fdb') then
+    Result.FloppyDiskB := TFileStream.Create(
+      GetOptionValue('fdb'), fmOpenReadWrite or fmShareDenyWrite);
+
+  if HasOption('hdmaster') then
+    Result.HardDiskMaster := TFileStream.Create(
+      GetOptionValue('hdmaster'), fmOpenReadWrite or fmShareDenyWrite);
+
+  if HasOption('hdslave') then
+    Result.HardDiskSlave := TFileStream.Create(
+      GetOptionValue('hdslave'), fmOpenReadWrite or fmShareDenyWrite);
 end;
 
 function TApplication.InterruptHook(ASender: TObject; ANumber: Byte): Boolean;
