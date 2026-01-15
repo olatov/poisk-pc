@@ -13,4 +13,6 @@
 backup/
 bin/
 lib/
+deps/
+out/
 
