@@ -17,8 +17,15 @@ type
     BaseAddress = $300;
   private
     FIOBus: IIOBus;
-    FDisk: TStream;
-    FOwnsDisk: Boolean;
+    FMasterDisk: TStream;
+    FSlaveDisk: TStream;
+    FOwnsMasterDisk: Boolean;
+    FOwnsSlaveDisk: Boolean;
+
+    { Disk selected for the currently executing command/transfer.
+      This avoids surprises if software flips drive select mid-transfer. }
+    FActiveDisk: TStream;
+    FActiveDiskIsSlave: Boolean;
 
     FTraceIO: Boolean;
     FPortStride2: Boolean;
@@ -51,15 +58,23 @@ type
       FTransferMode: TTransferMode;
 
     function DiskSectorSize: Integer; inline;
+    function IsSlaveSelected: Boolean; inline;
+    function SelectedDisk: TStream; inline;
+    function SelectedDriveName: String; inline;
+    function ActiveDisk: TStream; inline;
+    function DiskTotalSectorsForDisk(ADisk: TStream): Cardinal;
     function DiskTotalSectors: Cardinal;
     function GetCHSHeads: Word;
     function GetCHSSectorsPerTrack: Word;
+    function GetCHSCylindersForDisk(ADisk: TStream): Word;
     function GetCHSCylinders: Word;
     function GetSectorCountValue: Integer;
     function CurrentLBA: Cardinal;
     procedure DecrementSectorCountRegister;
     procedure SetError(AError: Byte);
     procedure SetStatus(ABsy, ADrq, AErr: Boolean);
+    procedure SetNoDevice;
+    function SelectedDevicePresent: Boolean; inline;
     procedure ResetDevice;
 
     procedure BeginPIORead(ALBA: Cardinal; ASectorCount: Integer);
@@ -71,13 +86,15 @@ type
     procedure AdvanceAddressSectors(ACount: Integer);
 
     procedure FillIdentifyBuffer;
-    function ReadDiskSector(ALBA: Cardinal; out AData: array of Byte): Boolean;
-    function WriteDiskSector(ALBA: Cardinal; const AData: array of Byte): Boolean;
+    function ReadDiskSector(ADisk: TStream; ALBA: Cardinal; out AData: array of Byte): Boolean;
+    function WriteDiskSector(ADisk: TStream; ALBA: Cardinal; const AData: array of Byte): Boolean;
 
     function ReadRegister(AOffset: Word): Byte;
     procedure WriteRegister(AOffset: Word; AValue: Byte);
     procedure ExecuteCommand(ACommand: Byte);
-    procedure TryOpenDefaultDisk;
+
+    procedure SetMasterDisk(AValue: TStream);
+    procedure SetSlaveDisk(AValue: TStream);
 
     procedure Trace(const AMsg: String);
     function NormalizeOffset(AOffset: Word): Word;
@@ -88,6 +105,11 @@ type
     destructor Destroy; override;
 
     procedure AttachDisk(AStream: TStream; AOwnsStream: Boolean);
+    procedure AttachMasterDisk(AStream: TStream; AOwnsStream: Boolean);
+    procedure AttachSlaveDisk(AStream: TStream; AOwnsStream: Boolean);
+
+    property MasterDisk: TStream read FMasterDisk write SetMasterDisk;
+    property SlaveDisk: TStream read FSlaveDisk write SetSlaveDisk;
 
     function GetIOBus: IIOBus;
     procedure SetIOBus(AValue: IIOBus);
@@ -161,32 +183,59 @@ begin
   Env := LowerCase(GetEnvironmentVariable('POISK_XTIDE_STRIDE2'));
   FPortStride2 := not ((Env = '0') or (Env = 'false') or (Env = 'off'));
 
-  FDisk := TMemoryStream.Create;
-  FOwnsDisk := True;
-  { default: 10 MiB empty disk }
-  TMemoryStream(FDisk).Size := 1024 * 1024 * 10;
-  TryOpenDefaultDisk;
+  { Default: no drives installed unless an image is attached or found on disk }
+  FMasterDisk := nil;
+  FOwnsMasterDisk := False;
+  FSlaveDisk := nil;
+  FOwnsSlaveDisk := False;
+
+  FActiveDisk := nil;
+  FActiveDiskIsSlave := False;
 
   ResetDevice;
 end;
 
 destructor TXTIDEController.Destroy;
 begin
-  if FOwnsDisk then
-    FreeAndNil(FDisk)
+  if FOwnsMasterDisk then
+    FreeAndNil(FMasterDisk)
   else
-    FDisk := nil;
+    FMasterDisk := nil;
+
+  if FOwnsSlaveDisk then
+    FreeAndNil(FSlaveDisk)
+  else
+    FSlaveDisk := nil;
+
+  FActiveDisk := nil;
   inherited Destroy;
 end;
 
 procedure TXTIDEController.AttachDisk(AStream: TStream; AOwnsStream: Boolean);
 begin
-  if (AStream = nil) then Exit;
-  if FOwnsDisk then
-    FreeAndNil(FDisk);
+  { Backward compatibility: old API attaches the master disk. }
+  AttachMasterDisk(AStream, AOwnsStream);
+end;
 
-  FDisk := AStream;
-  FOwnsDisk := AOwnsStream;
+procedure TXTIDEController.AttachMasterDisk(AStream: TStream; AOwnsStream: Boolean);
+begin
+  if (AStream = nil) then Exit;
+  if FOwnsMasterDisk then
+    FreeAndNil(FMasterDisk);
+
+  FMasterDisk := AStream;
+  FOwnsMasterDisk := AOwnsStream;
+  ResetDevice;
+end;
+
+procedure TXTIDEController.AttachSlaveDisk(AStream: TStream; AOwnsStream: Boolean);
+begin
+  if (AStream = nil) then Exit;
+  if FOwnsSlaveDisk then
+    FreeAndNil(FSlaveDisk);
+
+  FSlaveDisk := AStream;
+  FOwnsSlaveDisk := AOwnsStream;
   ResetDevice;
 end;
 
@@ -313,10 +362,43 @@ begin
   Result := 512;
 end;
 
+function TXTIDEController.IsSlaveSelected: Boolean;
+begin
+  Result := (FRegDriveHead and $10) <> 0;
+end;
+
+function TXTIDEController.SelectedDisk: TStream;
+begin
+  if IsSlaveSelected then
+    Result := FSlaveDisk
+  else
+    Result := FMasterDisk;
+end;
+
+function TXTIDEController.SelectedDriveName: String;
+begin
+  if IsSlaveSelected then
+    Result := 'slave'
+  else
+    Result := 'master';
+end;
+
+function TXTIDEController.ActiveDisk: TStream;
+begin
+  if (FTransferMode <> tmNone) and (FActiveDisk <> nil) then
+    Exit(FActiveDisk);
+  Result := SelectedDisk;
+end;
+
+function TXTIDEController.DiskTotalSectorsForDisk(ADisk: TStream): Cardinal;
+begin
+  if (ADisk = nil) or (ADisk.Size <= 0) then Exit(0);
+  Result := Cardinal(ADisk.Size div DiskSectorSize);
+end;
+
 function TXTIDEController.DiskTotalSectors: Cardinal;
 begin
-  if (FDisk = nil) or (FDisk.Size <= 0) then Exit(0);
-  Result := Cardinal(FDisk.Size div DiskSectorSize);
+  Result := DiskTotalSectorsForDisk(SelectedDisk);
 end;
 
 function TXTIDEController.GetCHSHeads: Word;
@@ -336,6 +418,20 @@ var
   Den: Cardinal;
 begin
   Total := DiskTotalSectors;
+  Den := Cardinal(GetCHSHeads) * Cardinal(GetCHSSectorsPerTrack);
+  if (Total = 0) or (Den = 0) then Exit(0);
+  if (Total div Den) > 16383 then
+    Result := 16383
+  else
+    Result := Word(Total div Den);
+end;
+
+function TXTIDEController.GetCHSCylindersForDisk(ADisk: TStream): Word;
+var
+  Total: Cardinal;
+  Den: Cardinal;
+begin
+  Total := DiskTotalSectorsForDisk(ADisk);
   Den := Cardinal(GetCHSHeads) * Cardinal(GetCHSSectorsPerTrack);
   if (Total = 0) or (Den = 0) then Exit(0);
   if (Total div Den) > 16383 then
@@ -406,6 +502,21 @@ begin
   if AErr then FRegStatus := FRegStatus or ATA_SR_ERR;
 end;
 
+procedure TXTIDEController.SetNoDevice;
+begin
+  { No device present: status reads as 0 and commands are ignored. }
+  FRegError := 0;
+  FRegStatus := 0;
+  FTransferMode := tmNone;
+  FBufferIndex := 0;
+  FTransferSectorsRemaining := 0;
+end;
+
+function TXTIDEController.SelectedDevicePresent: Boolean;
+begin
+  Result := SelectedDisk <> nil;
+end;
+
 procedure TXTIDEController.ResetDevice;
 begin
   FRegFeature := 0;
@@ -425,7 +536,10 @@ begin
   FTransferSectorsRemaining := 0;
   FMultipleSectorCount := 0;
 
-  SetStatus(False, False, False);
+  if SelectedDevicePresent then
+    SetStatus(False, False, False)
+  else
+    SetNoDevice;
 end;
 
 procedure TXTIDEController.BeginPIORead(ALBA: Cardinal; ASectorCount: Integer);
@@ -457,7 +571,7 @@ begin
   end;
 
   LBA := CurrentLBA;
-  if not ReadDiskSector(LBA, FBuffer) then
+  if not ReadDiskSector(FActiveDisk, LBA, FBuffer) then
   begin
     { error already set }
     SetStatus(False, False, True);
@@ -474,7 +588,7 @@ var
   LBA: Cardinal;
 begin
   LBA := CurrentLBA;
-  if not WriteDiskSector(LBA, FBuffer) then
+  if not WriteDiskSector(FActiveDisk, LBA, FBuffer) then
   begin
     SetStatus(False, False, True);
     FTransferMode := tmNone;
@@ -577,18 +691,23 @@ procedure TXTIDEController.FillIdentifyBuffer;
 
 var
   Total: Cardinal;
+  DriveTag: String;
 begin
   FillChar(FBuffer, SizeOf(FBuffer), 0);
 
-  Total := DiskTotalSectors;
+  Total := DiskTotalSectorsForDisk(FActiveDisk);
+  if FActiveDiskIsSlave then
+    DriveTag := 'SLAVE'
+  else
+    DriveTag := 'MASTER';
 
   { General configuration: fixed disk }
   PutWord(0, $0040);
-  PutWord(1, GetCHSCylinders);
+  PutWord(1, GetCHSCylindersForDisk(FActiveDisk));
   PutWord(3, GetCHSHeads);
   PutWord(6, GetCHSSectorsPerTrack);
 
-  PutAtaStringWordSwapped(10, 10, 'POISK-PC HDD'); { serial: 20 chars }
+  PutAtaStringWordSwapped(10, 10, AnsiString('POISK-PC HDD ' + DriveTag)); { serial: 20 chars }
   PutAtaStringWordSwapped(23, 4, '0.1');           { firmware: 8 chars }
   PutAtaStringWordSwapped(27, 20, 'XTIDE PIO (emulated)'); { model: 40 chars }
 
@@ -607,20 +726,20 @@ begin
   PutWord(61, Word((Total shr 16) and $FFFF));
 end;
 
-function TXTIDEController.ReadDiskSector(ALBA: Cardinal; out AData: array of Byte): Boolean;
+function TXTIDEController.ReadDiskSector(ADisk: TStream; ALBA: Cardinal; out AData: array of Byte): Boolean;
 var
   Pos: Int64;
   Total: Cardinal;
 begin
   Result := False;
   if Length(AData) < DiskSectorSize then Exit;
-  if FDisk = nil then
+  if ADisk = nil then
   begin
     SetError(ATA_ER_ABRT);
     Exit;
   end;
 
-  Total := DiskTotalSectors;
+  Total := DiskTotalSectorsForDisk(ADisk);
   if (Total = 0) or (ALBA >= Total) then
   begin
     SetError(ATA_ER_IDNF);
@@ -628,15 +747,15 @@ begin
   end;
 
   Pos := Int64(ALBA) * DiskSectorSize;
-  if Pos + DiskSectorSize > FDisk.Size then
+  if Pos + DiskSectorSize > ADisk.Size then
   begin
     SetError(ATA_ER_IDNF);
     Exit;
   end;
 
   try
-    FDisk.Position := Pos;
-    if FDisk.Read(AData[0], DiskSectorSize) <> DiskSectorSize then
+    ADisk.Position := Pos;
+    if ADisk.Read(AData[0], DiskSectorSize) <> DiskSectorSize then
     begin
       SetError(ATA_ER_UNC);
       Exit;
@@ -651,20 +770,32 @@ begin
   end;
 end;
 
-function TXTIDEController.WriteDiskSector(ALBA: Cardinal; const AData: array of Byte): Boolean;
+function TXTIDEController.WriteDiskSector(ADisk: TStream; ALBA: Cardinal; const AData: array of Byte): Boolean;
 var
   Pos: Int64;
   Needed: Int64;
+  DriveName: String;
 begin
   Result := False;
   if Length(AData) < DiskSectorSize then Exit;
-  if FDisk = nil then
+  if ADisk = nil then
   begin
     SetError(ATA_ER_ABRT);
     Exit;
   end;
 
-  Trace(Format('Writing sector LBA %d (CHS %d:%d:%d)', [ALBA, ALBA div (16*63), (ALBA div 63) mod 16, (ALBA mod 63) + 1]));
+  if FActiveDiskIsSlave then
+    DriveName := 'slave'
+  else
+    DriveName := 'master';
+
+  Trace(Format('Writing %s sector LBA %d (CHS %d:%d:%d)', [
+    DriveName,
+    ALBA,
+    ALBA div (16*63),
+    (ALBA div 63) mod 16,
+    (ALBA mod 63) + 1
+  ]));
   if ALBA = 0 then
   begin
     Trace(Format('Boot sector data: %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s',
@@ -681,11 +812,11 @@ begin
 
   Pos := Int64(ALBA) * DiskSectorSize;
   Needed := Pos + DiskSectorSize;
-  if Needed > FDisk.Size then
+  if Needed > ADisk.Size then
   begin
     { allow growing for memory/file streams }
     try
-      FDisk.Size := Needed;
+      ADisk.Size := Needed;
     except
       SetError(ATA_ER_ABRT);
       Exit;
@@ -693,8 +824,8 @@ begin
   end;
 
   try
-    FDisk.Position := Pos;
-    if FDisk.Write(AData[0], DiskSectorSize) <> DiskSectorSize then
+    ADisk.Position := Pos;
+    if ADisk.Write(AData[0], DiskSectorSize) <> DiskSectorSize then
     begin
       SetError(ATA_ER_UNC);
       Exit;
@@ -713,6 +844,16 @@ function TXTIDEController.ReadRegister(AOffset: Word): Byte;
 var
   TempHead: Byte;
 begin
+  if not SelectedDevicePresent then
+  begin
+    { Selected drive not present: emulate floating/absent device as zeros }
+    case AOffset of
+      ATA_REG_STATUS, ATA_REG_ALTSTATUS: Exit(0);
+    else
+      Exit(0);
+    end;
+  end;
+
   case AOffset of
     ATA_REG_DATA:
       begin
@@ -806,7 +947,15 @@ begin
     ATA_REG_SECNUM: FRegSectorNumber := AValue;
     ATA_REG_CYLLOW: FRegCylLow := AValue;
     ATA_REG_CYLHIGH: FRegCylHigh := AValue;
-    ATA_REG_DRVHEAD: FRegDriveHead := AValue;
+    ATA_REG_DRVHEAD:
+      begin
+        FRegDriveHead := AValue;
+        { If software switches between master/slave, reflect presence immediately }
+        if SelectedDevicePresent then
+          SetStatus(False, False, False)
+        else
+          SetNoDevice;
+      end;
 
     ATA_REG_DEVCTRL:
       begin
@@ -830,7 +979,10 @@ begin
     ATA_REG_COMMAND:
       begin
         FRegCommand := AValue;
-        ExecuteCommand(AValue);
+        if SelectedDevicePresent then
+          ExecuteCommand(AValue)
+        else
+          SetNoDevice; { ignore commands to a non-existent device }
       end;
   else
   end;
@@ -841,13 +993,25 @@ var
   Count: Integer;
   I: Integer;
   LBA: Cardinal;
+  Disk: TStream;
 begin
   FRegError := 0;
   SetStatus(True, False, False);
 
+  { Capture the selected device at command start }
+  FActiveDisk := SelectedDisk;
+  FActiveDiskIsSlave := IsSlaveSelected;
+  Disk := FActiveDisk;
+
   case ACommand of
     ATA_CMD_IDENTIFY:
       begin
+        if Disk = nil then
+        begin
+          SetError(ATA_ER_ABRT);
+          SetStatus(False, False, True);
+          Exit;
+        end;
         FillIdentifyBuffer;
         FTransferMode := tmPIORead;
         FTransferSectorsRemaining := 1;
@@ -857,12 +1021,24 @@ begin
 
     ATA_CMD_READ_SECTORS:
       begin
+        if Disk = nil then
+        begin
+          SetError(ATA_ER_ABRT);
+          SetStatus(False, False, True);
+          Exit;
+        end;
         Count := GetSectorCountValue;
         BeginPIORead(CurrentLBA, Count);
       end;
 
     ATA_CMD_WRITE_SECTORS:
       begin
+        if Disk = nil then
+        begin
+          SetError(ATA_ER_ABRT);
+          SetStatus(False, False, True);
+          Exit;
+        end;
         Count := GetSectorCountValue;
         BeginPIOWrite(CurrentLBA, Count);
       end;
@@ -901,12 +1077,24 @@ begin
 
     ATA_CMD_READ_MULTIPLE:
       begin
+        if Disk = nil then
+        begin
+          SetError(ATA_ER_ABRT);
+          SetStatus(False, False, True);
+          Exit;
+        end;
         Count := GetSectorCountValue;
         BeginPIORead(CurrentLBA, Count);
       end;
 
     ATA_CMD_WRITE_MULTIPLE:
       begin
+        if Disk = nil then
+        begin
+          SetError(ATA_ER_ABRT);
+          SetStatus(False, False, True);
+          Exit;
+        end;
         Count := GetSectorCountValue;
         BeginPIOWrite(CurrentLBA, Count);
       end;
@@ -914,11 +1102,17 @@ begin
     ATA_CMD_READ_VERIFY:
       begin
         { Verify sectors: no data transfer, just check that sectors exist/readable }
+        if Disk = nil then
+        begin
+          SetError(ATA_ER_ABRT);
+          SetStatus(False, False, True);
+          Exit;
+        end;
         Count := GetSectorCountValue;
         for I := 1 to Count do
         begin
           LBA := CurrentLBA;
-          if not ReadDiskSector(LBA, FBuffer) then
+          if not ReadDiskSector(Disk, LBA, FBuffer) then
           begin
             SetStatus(False, False, True);
             Exit;
@@ -949,22 +1143,36 @@ begin
   end;
 end;
 
-procedure TXTIDEController.TryOpenDefaultDisk;
-var
-  DefaultName: String;
-  FS: TFileStream;
+procedure TXTIDEController.SetMasterDisk(AValue: TStream);
 begin
-  { optional convenience: if disk/hdd.img exists, use it }
-  DefaultName := IncludeTrailingPathDelimiter(GetCurrentDir) + 'disk' + DirectorySeparator + 'hdd.img';
-  if not FileExists(DefaultName) then Exit;
+  { Property assignment is non-owning by default }
+  if FMasterDisk = AValue then Exit;
 
-  try
-    FS := TFileStream.Create(DefaultName, fmOpenReadWrite or fmShareDenyNone);
-  except
-    Exit;
-  end;
+  if FActiveDisk = FMasterDisk then
+    FActiveDisk := nil;
 
-  AttachDisk(FS, True);
+  if FOwnsMasterDisk then
+    FreeAndNil(FMasterDisk);
+
+  FMasterDisk := AValue;
+  FOwnsMasterDisk := False;
+  ResetDevice;
+end;
+
+procedure TXTIDEController.SetSlaveDisk(AValue: TStream);
+begin
+  { Property assignment is non-owning by default }
+  if FSlaveDisk = AValue then Exit;
+
+  if FActiveDisk = FSlaveDisk then
+    FActiveDisk := nil;
+
+  if FOwnsSlaveDisk then
+    FreeAndNil(FSlaveDisk);
+
+  FSlaveDisk := AValue;
+  FOwnsSlaveDisk := False;
+  ResetDevice;
 end;
 
 end.
