@@ -9,7 +9,7 @@ fi
 if [ ! -d "ray4laz" ]; then
     git clone https://github.com/GuvaCode/ray4laz.git
     cd ray4laz
-    git checkout 5.0
+    git checkout 5.6.2
     cd ..
 fi
 
@@ -20,5 +20,5 @@ docker run \
     -v "$(pwd)/src:/src" \
     -v "$(pwd)/deps/:/deps" \
     -v "$(pwd)/out:/out" \
-    freepascal/fpc:trunk-bookworm-full \
+    olatov/fpc:20260115 \
     fpc -O2 -CX -XX -Xs /src/poisk.lpr -Fu/deps/pas8088/src -Fu/deps/ray4laz/source -Fl/deps/ray4laz/libs/x86_64-linux -o/out/poisk 
