@@ -2,9 +2,6 @@ program Poisk;
 
 {$mode objfpc}{$H+}
 
-{$ifdef darwin}
-  {$linklib raylib}
-{$endif}
 {$R-}
 
 uses
@@ -14,6 +11,9 @@ uses
   {$IfDef MSWINDOWS}
   Windows,
   {$EndIf}
+  {$IfDef DARWIN}
+  CocoaAll,
+  {$endif}
   Classes, SysUtils, StrUtils, Math, StreamEx, BufStream, Generics.Collections,
   System.IOUtils, CustApp,
   RayLib, RayMath,
@@ -135,6 +135,8 @@ type
   end;
 
   procedure AudioCallback(Buffer: Pointer; Frames: LongWord); cdecl; forward;
+
+{$R poisk.rc}
 
 { TApplication.TConfiguration }
 
@@ -1249,8 +1251,6 @@ begin
   for I := 0 to Frames - 1 do
     OutBuf[I] := Application.FAudioBuffer.Read(127);;
 end;
-
-{$R *.res}
 
 begin
   SetExceptionMask(GetExceptionMask + [exInvalidOp, exOverflow, exZeroDivide]);
