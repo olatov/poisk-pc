@@ -20,5 +20,5 @@ docker run \
     -v "$(pwd)/src:/src" \
     -v "$(pwd)/deps/:/deps" \
     -v "$(pwd)/out:/out" \
-    olatov/fpc:20260115 \
+    olatov/fpc:20260116 \
     fpc -O2 -CX -XX -Xs -FF /src/poisk.lpr -Fu/deps/pas8088/src/pas8088 -Fu/deps/ray4laz/source -Fl/deps/ray4laz/libs/x86_64-linux -o/out/poisk 
