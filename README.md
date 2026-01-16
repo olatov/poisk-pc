@@ -29,7 +29,7 @@ An emulator for the [Poisk](https://en.wikipedia.org/wiki/Poisk_%28computer%29) 
 </p>
 <p align="center">
   <img width="32%" alt="4" src="https://github.com/user-attachments/assets/24dac001-80a0-4064-b407-73251044c49f" />
-  <img width="32%" alt="5" src="https://github.com/user-attachments/assets/874816d5-d114-49fe-9947-b14cf666bce7" />
+  <img width="32%" alt="5" src="https://github.com/user-attachments/assets/85a11ebf-7438-4fa4-82e1-c4be8404bf4c" />
   <img width="32%" alt="6" src="https://github.com/user-attachments/assets/d52cd525-20c4-4999-a60f-6fc8f5b098f5" />
 </p>
 
