@@ -183,10 +183,10 @@ end;
 
 initialization
   Settings := TSettings.Create;
-  Settings.Load;
+  { Settings.Load; }
 
 finalization
-  Settings.Save;
+  { Settings.Save; }
   FreeAndNil(Settings);
 
 end.
