@@ -24,6 +24,7 @@ uses
 const
   Version = '0.9';
   FPS = 50;
+  DefaultRamSize = 128;
 
   SpeakerSampleRate = 44100;
   SpeakerSamplesPerFrame = SpeakerSampleRate div FPS;
@@ -78,15 +79,13 @@ type
 
       { TConfiguration }
 
-      TConfiguration = class
+      TConfiguration = record
         RamSize: Integer;
-        BiosRom, FdcRom, XTIDERom: TStream;
+        BiosRom, FdcRom, HdcRom: TBytes;
         Tape: TStream;
-        Cartridge: TStream;
+        Cartridge: TBytes;
         FloppyDiskA, FloppyDiskB: TStream;
         HardDiskMaster, HardDiskSlave: TStream;
-        constructor Create;
-        destructor Destroy; override;
       end;
   public
     FAudioBuffer: TRingBuffer;
@@ -122,8 +121,6 @@ type
     procedure PrintOsd(AText: String; AColor: TColorB);
     procedure PrintOsd(AText: String);
     function InterruptHook(ASender: TObject; ANumber: Byte): Boolean;
-    function OnBeforeInstruction(
-      ASender: TObject; AAddress: TPhysicalAddress): Boolean;
     procedure OnAfterInstruction(ASender: TObject; AInstruction: TInstruction);
   protected
     procedure DoRun; override;
@@ -137,22 +134,6 @@ type
   procedure AudioCallback(Buffer: Pointer; Frames: LongWord); cdecl; forward;
 
 {$R poisk.rc}
-
-{ TApplication.TConfiguration }
-
-constructor TApplication.TConfiguration.Create;
-begin
-  RamSize := 640;
-end;
-
-destructor TApplication.TConfiguration.Destroy;
-begin
-  inherited Destroy;
-  FreeAndNil(BiosRom);
-  FreeAndNil(FdcRom);
-  FreeAndNil(XTIDERom);
-  FreeAndNil(Cartridge);
-end;
 
 { TApplication }
 
@@ -196,7 +177,7 @@ begin
   Result.AddMemory(SystemRam);
 
   BiosRomBlock := TRomMemoryBlock.Create(Result, 1024 * 8, BiosAddress);
-  BiosRomBlock.LoadFromStream(Configuration.BiosRom);
+  BiosRomBlock.LoadBytes(Configuration.BiosRom);
   Result.AddMemory(BiosRomBlock);
 
   VideoRam := TRamMemoryBlock.Create(Result, 1024 * 32, VideoAddress);
@@ -224,16 +205,16 @@ begin
   if Assigned(Configuration.Cartridge) then
   begin
     CartRomBlock := TRomMemoryBlock.Create(
-      Result, Configuration.Cartridge.Size, CartAddress);
+      Result, Length(Configuration.Cartridge), CartAddress);
+    CartRomBlock.LoadBytes(Configuration.Cartridge);
     Result.AddMemory(CartRomBlock);
-    CartRomBlock.LoadFromStream(Configuration.Cartridge);
   end;
 
   { Floppy disk }
   if Assigned(Configuration.FloppyDiskA) or Assigned(Configuration.FloppyDiskB) then
   begin
-    FdcRomBlock := TRomMemoryBlock.Create(Result, Configuration.FdcRom.Size, FdcRomAddress);
-    FdcRomBlock.LoadFromStream(Configuration.FdcRom);
+    FdcRomBlock := TRomMemoryBlock.Create(Result, Length(Configuration.FdcRom), FdcRomAddress);
+    FdcRomBlock.LoadBytes(Configuration.FdcRom);
     Result.AddMemory(FdcRomBlock);
 
     Result.FloppyDiskController := TFloppyDiskController.Create(Result);
@@ -245,8 +226,8 @@ begin
 
   if Assigned(Configuration.HardDiskMaster) or Assigned(Configuration.HardDiskSlave) then
   begin
-    XTIDERomBlock := TRomMemoryBlock.Create(Result, Configuration.XTIDERom.Size, XTIDERomAddress);
-    XTIDERomBlock.LoadFromStream(Configuration.XTIDERom);
+    XTIDERomBlock := TRomMemoryBlock.Create(Result, Length(Configuration.HdcRom), XTIDERomAddress);
+    XTIDERomBlock.LoadBytes(Configuration.HdcRom);
     Result.AddMemory(XTIDERomBlock);
     Result.XTIDEController := TXTIDEController.Create(Result);
 
@@ -388,7 +369,9 @@ begin
 
   // quick check parameters
   ErrorMsg := CheckOptions('h', [
-    'help', 'ramsize:', 'tape:', 'cartridge:',
+    'help', 'ramsize:',
+    'bios-rom:', 'fdc-rom:', 'hdc-rom:',
+    'tape:', 'cartridge:',
     'fda:', 'fdb:', 'hdmaster:', 'hdslave:',
     'turbo', 'window:', 'aspect', 'grayscale', 'texture-filter', 'scanlines'
   ]);
@@ -437,7 +420,6 @@ begin
 
   Configuration := BuildConfiguration;
   Computer := BuildMachine(Configuration);
-  FreeAndNil(Configuration);
 end;
 
 procedure TApplication.RunMachine;
@@ -584,7 +566,6 @@ begin
   BaseTimePerSpeakerSample := TimePerSpeakerSample;
 
   Computer.Cpu.InterruptHook := @InterruptHook;
-  Computer.Cpu.OnBeforeInstruction := @OnBeforeInstruction;
   Computer.Cpu.OnAfterInstruction := @OnAfterInstruction;
   Computer.Cpu.OnBeforeExecution := @OnBeforeExecution;
 
@@ -1073,35 +1054,33 @@ function TApplication.BuildConfiguration: TConfiguration;
 var
   FileName: String;
 begin
-  Result := TConfiguration.Create;
-
-  FileName := SetDirSeparators('rom/bios-1991.rom');
-  if TFile.Exists(FileName) then
-    Result.BiosRom := TFile.OpenRead(FileName)
-  else
-    Result.BiosRom := TResourceStream.Create(HINSTANCE, 'MINIMAL_ROM', RT_RCDATA);
-
-  FileName := SetDirSeparators('rom/fdc-b504.rom');
-  if TFile.Exists(FileName) then
-    Result.FdcRom := TFile.OpenRead(FileName)
-  else
-    Result.FdcRom := TMemoryStream.Create;
-
-  FileName := SetDirSeparators('rom/xtide-poisk.rom');
-  if TFile.Exists(FileName) then
-    Result.XTIDERom := TFile.OpenRead(FileName)
-  else
-    Result.XTIDERom := TMemoryStream.Create;
+  { Defaults }
+  Result.RamSize := DefaultRamSize;
+  Result.Tape := Nil;
+  Result.FloppyDiskA := Nil;
+  Result.FloppyDiskB := Nil;
+  Result.HardDiskMaster := Nil;
+  Result.HardDiskSlave := Nil;
 
   if HasOption('ramsize') then
-    Result.RamSize := EnsureRange(StrToIntDef(GetOptionValue('ramsize'), 640), 128, 640);
+    Result.RamSize := EnsureRange(
+      StrToIntDef(GetOptionValue('ramsize'), DefaultRamSize), 32, 640);
+
+  if HasOption('bios-rom') then
+    Result.BiosRom := TFile.ReadAllBytes(GetOptionValue('bios-rom'));
+
+  if HasOption('fdc-rom') then
+    Result.FdcRom := TFile.ReadAllBytes(GetOptionValue('fdc-rom'));
+
+  if HasOption('hdc-rom') then
+    Result.HdcRom := TFile.ReadAllBytes(GetOptionValue('hdc-rom'));
 
   if HasOption('tape') then
     Result.Tape := TFileStream.Create(
       GetOptionValue('tape'), fmOpenRead or fmShareDenyWrite);
 
   if HasOption('cartridge') then
-    Result.Cartridge := TFile.OpenRead(GetOptionValue('cartridge'));
+    Result.Cartridge := TFile.ReadAllBytes(GetOptionValue('cartridge'));
 
   if HasOption('fda') then
     Result.FloppyDiskA := TFileStream.Create(
@@ -1149,20 +1128,6 @@ begin
           PrintOsd('[BIN] ' + E.Message);
       end;
   end;
-end;
-
-function TApplication.OnBeforeInstruction(ASender: TObject; AAddress: TPhysicalAddress): Boolean;
-var
-  Cpu: TCpu8088 absolute ASender;
-  Res: TBinarySearchResult;
-  BreakAddr: TPhysicalAddress;
-begin
-  Result := False;
-
-  if AAddress < 1024 then
-    raise Exception.CreateFmt(
-      'Execution at IVT area: %.5x. This can''t be right, terminating.',
-      [AAddress]);
 end;
 
 procedure TApplication.OnBeforeExecution(ASender: TObject; AInstruction: TInstruction);

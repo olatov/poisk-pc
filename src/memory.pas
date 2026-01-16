@@ -35,12 +35,14 @@ type
     function GetSize: UInt32;
     property Size: UInt32 read GetSize;
     constructor Create(AOwner: TComponent; ASize: UInt32;
-      ABaseAddress: TPhysicalAddress); reintroduce;
+      ABaseAddress: TPhysicalAddress; AFill: Byte = 0); reintroduce;
     procedure WriteByte(AOffset: UInt32; AData: Byte); virtual;
     function ReadByte(AOffset: UInt32): Byte; virtual;
     procedure LoadFromStream(AStream: TStream; AOffset, ALength: Integer);
     procedure LoadFromStream(AStream: TStream; AOffset: Integer);
     procedure LoadFromStream(AStream: TStream);
+    procedure LoadBytes(ABytes: TBytes);
+    procedure Fill(AData: Byte);
 
     { Memory bus device API }
     function GetMemoryBus: IMemoryBus;
@@ -75,10 +77,11 @@ implementation
 { TRamMemoryBlock }
 
 constructor TRamMemoryBlock.Create(AOwner: TComponent; ASize: UInt32;
-  ABaseAddress: TPhysicalAddress);
+  ABaseAddress: TPhysicalAddress; AFill: Byte);
 begin
   inherited Create(AOwner);
   SetLength(FData, ASize);
+  Fill(AFill);
   BaseAddress := ABaseAddress;
 end;
 
@@ -125,6 +128,22 @@ end;
 procedure TRamMemoryBlock.LoadFromStream(AStream: TStream);
 begin
   LoadFromStream(AStream, 0, AStream.Size - AStream.Position);
+end;
+
+procedure TRamMemoryBlock.LoadBytes(ABytes: TBytes);
+var
+  DataLength: Integer;
+begin
+  DataLength := Min(Length(ABytes), Length(FData));
+  if DataLength = 0 then Exit;
+
+  Move(ABytes[0], FData[0], DataLength);
+end;
+
+procedure TRamMemoryBlock.Fill(AData: Byte);
+begin
+  if Length(FData) = 0 then Exit;
+  FillByte(FData[0], Length(FData), AData);
 end;
 
 function TRamMemoryBlock.GetMemoryBus: IMemoryBus;
@@ -205,7 +224,7 @@ begin
   for Device in FDevices do
     if (Device <> ADevice)
         and Device.OnMemoryRead(ADevice, AAddress, AData) then Exit;
-  AData := 0;
+  AData := $FF;
 end;
 
 end.
