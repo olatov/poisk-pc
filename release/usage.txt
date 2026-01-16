@@ -1,0 +1,59 @@
+Run the binary appropriate for your operating system (Linux / Windows / macOS) and specify the BIOS firmware to use
+with the --bios-rom option (demo.rom is included in this release).
+
+Example:
+
+$ ./poisk-linux-x86_64 --bios-rom=rom/demo.rom
+
+If a window appears titled “POISK Demo ROM” and displays color bars, the emulator is working correctly.
+
+To run a usable system, you will need a full BIOS ROM (not included), for example:
+
+$ ./poisk-linux-x86_64 --bios-rom=rom/bios-1991.rom
+
+
+macOS Security Note
+===================
+
+On macOS, you may encounter an error preventing the binary from running because it's from an 
+unidentified developer. To fix this, remove the quarantine attribute:
+
+$ xattr -c poisk-macos-universal
+
+After running this command, the binary should execute normally.
+
+
+Keyboard Shortcuts
+==================
+
+All shortcuts require holding F11 key:
+
+System Control:
+  F11 + Esc       Exit emulator
+  F11 + F1        Reset computer
+  F11 + P         Pause/unpause emulation
+  F11 + T         Toggle turbo mode
+  
+Cassette Tape:
+  F11 + F5        Play/stop tape
+  F11 + F6        Rewind tape (10 seconds back)
+  F11 + F7        Fast-forward tape (10 seconds forward)
+  F11 + F8        Show current tape position
+
+Display:
+  F11 + F         Toggle fullscreen
+  F11 + A         Toggle 4:3 aspect ratio correction
+  F11 + G         Toggle grayscale mode
+  F11 + S         Toggle scanlines effect
+  F11 + Y         Toggle texture filtering (bilinear/point)
+
+Audio:
+  F11 + M         Mute/unmute sound
+  F11 + 9         Decrease volume
+  F11 + 0         Increase volume
+
+
+Tip
+===
+If you hear a click from the speaker every time you press a key on the keyboard,
+it is a feature of the POISK BIOS. Press F4 to toggle on/off.
