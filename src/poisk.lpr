@@ -1070,11 +1070,28 @@ begin
 end;
 
 function TApplication.BuildConfiguration: TConfiguration;
+var
+  FileName: String;
 begin
   Result := TConfiguration.Create;
-  Result.BiosRom := TFile.OpenRead(SetDirSeparators('rom/bios-1991.rom'));
-  Result.FdcRom := TFile.OpenRead(SetDirSeparators('rom/fdc-b504.rom'));
-  Result.XTIDERom := TFile.OpenRead(SetDirSeparators('rom/xtide-poisk.rom'));
+
+  FileName := SetDirSeparators('rom/bios-1991.rom');
+  if TFile.Exists(FileName) then
+    Result.BiosRom := TFile.OpenRead(FileName)
+  else
+    Result.BiosRom := TResourceStream.Create(HINSTANCE, 'MINIMAL_ROM', RT_RCDATA);
+
+  FileName := SetDirSeparators('rom/fdc-b504.rom');
+  if TFile.Exists(FileName) then
+    Result.FdcRom := TFile.OpenRead(FileName)
+  else
+    Result.FdcRom := TMemoryStream.Create;
+
+  FileName := SetDirSeparators('rom/xtide-poisk.rom');
+  if TFile.Exists(FileName) then
+    Result.XTIDERom := TFile.OpenRead(FileName)
+  else
+    Result.XTIDERom := TMemoryStream.Create;
 
   if HasOption('ramsize') then
     Result.RamSize := EnsureRange(StrToIntDef(GetOptionValue('ramsize'), 640), 128, 640);
