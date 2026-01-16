@@ -1262,8 +1262,8 @@ begin
   writeln('  -h, --help               Show this help message');
   writeln;
   writeln('Examples:');
-  writeln('  ', ExeName, ' --fda=disk.img --window=720x576');
-  writeln('  ', ExeName, ' --ramsize=640 --turbo --aspect');
+  writeln('  ', ExeName, ' --bios-rom=bios.rom --fdc-rom=fdc.rom --fda=disk.img');
+  writeln('  ', ExeName, ' --bios-rom=bios.rom --ramsize=640 --turbo --aspect');
   writeln('  ', ExeName, ' --bios-rom=custom.rom --window=full');
   writeln;
 end;
