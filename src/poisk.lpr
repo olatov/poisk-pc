@@ -296,23 +296,6 @@ destructor TApplication.Destroy;
 var
   DiskStream: TStream;
 begin
-  if not Settings.Window.FullScreen then
-  begin
-    Settings.Window.Width := GetScreenWidth;
-    Settings.Window.Height := GetScreenHeight;
-  end;
-
-  SetAudioStreamCallback(SpeakerAudioStream, Nil);
-
-  UnloadShader(GfxShader);
-  UnloadRenderTexture(FTarget);
-  UnloadFont(Font);
-
-  CloseWindow;
-
-  UnloadAudioStream(SpeakerAudioStream);
-  CloseAudioDevice;
-
   FreeAndNil(FComputer);
 
   FreeAndNil(FOsdTextItems);
@@ -335,6 +318,27 @@ var
   Configuration: TConfiguration;
 begin
   inherited Initialize;
+
+  // quick check parameters
+  ErrorMsg := CheckOptions('h', [
+    'help', 'ramsize:',
+    'bios-rom:', 'fdc-rom:', 'hdc-rom:',
+    'tape:', 'cartridge:',
+    'fda:', 'fdb:', 'hdmaster:', 'hdslave:',
+    'turbo', 'window:', 'aspect', 'grayscale', 'texture-filter', 'scanlines'
+  ]);
+  if ErrorMsg <> '' then begin
+    ShowException(Exception.Create(ErrorMsg));
+    Terminate;
+    Exit;
+  end;
+
+  // parse parameters
+  if HasOption('h', 'help') then begin
+    WriteHelp;
+    Terminate;
+    Exit;
+  end;
 
   FOsdTextItems := TOsdTextList.Create;
   PrintOsd(Format('POISK v%s', [Version]));
@@ -366,27 +370,6 @@ begin
 
   FKeyboardMap := TKeyboardMap.Create;
   BuildKeyboardMap;
-
-  // quick check parameters
-  ErrorMsg := CheckOptions('h', [
-    'help', 'ramsize:',
-    'bios-rom:', 'fdc-rom:', 'hdc-rom:',
-    'tape:', 'cartridge:',
-    'fda:', 'fdb:', 'hdmaster:', 'hdslave:',
-    'turbo', 'window:', 'aspect', 'grayscale', 'texture-filter', 'scanlines'
-  ]);
-  if ErrorMsg <> '' then begin
-    ShowException(Exception.Create(ErrorMsg));
-    Terminate;
-    Exit;
-  end;
-
-  // parse parameters
-  if HasOption('h', 'help') then begin
-    WriteHelp;
-    Terminate;
-    Exit;
-  end;
 
   Settings.Machine.Turbo := HasOption('turbo');
   Settings.Video.GrayScale := HasOption('grayscale');
@@ -560,6 +543,8 @@ var
   end;
 
 begin
+  if Terminated then Exit;
+
   VirtualTime := 0;
   TimePerCycle := 1 / Settings.Machine.ClockSpeed;
   TimePerSpeakerSample := 1 / SpeakerSampleRate * 0.9;
@@ -621,7 +606,7 @@ begin
     WaitStates, InitialWaitStates);
   InitialWaitStates := InitialWaitStates div FPS;
 
-  while not WindowShouldClose do
+  while not (WindowShouldClose or Terminated) do
   begin
     UpdateOsd;
 
@@ -744,9 +729,24 @@ begin
     EndDrawing;
   end;
 
+  if Assigned(Debugger) then Debugger.Stop;
+
+  if not Settings.Window.FullScreen then
+  begin
+    Settings.Window.Width := GetScreenWidth;
+    Settings.Window.Height := GetScreenHeight;
+  end;
+
   SetAudioStreamCallback(SpeakerAudioStream, Nil);
 
-  if Assigned(Debugger) then Debugger.Stop;
+  UnloadShader(GfxShader);
+  UnloadRenderTexture(FTarget);
+  UnloadFont(Font);
+
+  CloseWindow;
+
+  UnloadAudioStream(SpeakerAudioStream);
+  CloseAudioDevice;
 end;
 
 procedure TApplication.SetDebugger(AValue: TWebDebugger);
@@ -1218,8 +1218,54 @@ end;
 
 procedure TApplication.WriteHelp;
 begin
-  { add your help code here }
-  writeln('Usage: ', ExeName, ' -h');
+  writeln('POISK Emulator v', Version);
+  writeln('An emulator for the Poisk personal computer');
+  writeln;
+  writeln('Usage: ', ExeName, ' [options]');
+  writeln;
+  writeln('NOTE: A system BIOS ROM is required for a minimally functioning system.');
+  writeln;
+  writeln('Hardware Configuration:');
+  writeln('  --ramsize=<size>         Set RAM size in KB (32-640, default: 128)');
+  writeln('  --bios-rom=<file>        Load BIOS ROM file (required for boot)');
+  writeln('  --fdc-rom=<file>         Load FDC (Floppy Disk Controller) ROM');
+  writeln('  --hdc-rom=<file>         Load HDC (Hard Disk Controller) ROM');
+  writeln;
+  writeln('Storage Devices:');
+  writeln('  --cartridge=<file>       Load cartridge ROM image');
+  writeln('  --fda=<file>             Mount floppy disk image as drive A:');
+  writeln('                           (supports 360KB and 720KB formats)');
+  writeln('                           (requires --fdc-rom for controller)');
+  writeln('  --fdb=<file>             Mount floppy disk image as drive B:');
+  writeln('                           (supports 360KB and 720KB formats)');
+  writeln('                           (requires --fdc-rom for controller)');
+  writeln('  --hdmaster=<file>        Mount hard disk image as master drive');
+  writeln('                           (CHS geometry: 16 heads, 63 sectors/track)');
+  writeln('                           (requires --hdc-rom for controller)');
+  writeln('  --hdslave=<file>         Mount hard disk image as slave drive');
+  writeln('                           (CHS geometry: 16 heads, 63 sectors/track)');
+  writeln('                           (requires --hdc-rom for controller)');
+  writeln('  --tape=<file>            Load cassette tape file (PCM WAV format)');
+  writeln;
+  writeln('Display Options:');
+  writeln('  --window=<mode>          Window mode: "full" for fullscreen,');
+  writeln('                           or "WIDTHxHEIGHT" (e.g., "720x576")');
+  writeln('  --aspect                 Use 4:3 aspect ratio correction');
+  writeln('  --grayscale              Display in grayscale mode');
+  writeln('  --scanlines              Enable scanline effect');
+  writeln('  --texture-filter         Enable bilinear texture filtering');
+  writeln;
+  writeln('Performance:');
+  writeln('  --turbo                  Enable turbo mode (higher CPU speed)');
+  writeln;
+  writeln('Help:');
+  writeln('  -h, --help               Show this help message');
+  writeln;
+  writeln('Examples:');
+  writeln('  ', ExeName, ' --fda=disk.img --window=720x576');
+  writeln('  ', ExeName, ' --ramsize=640 --turbo --aspect');
+  writeln('  ', ExeName, ' --bios-rom=custom.rom --window=full');
+  writeln;
 end;
 
 var
