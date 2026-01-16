@@ -875,7 +875,7 @@ begin
         if Verbose then
           Write(
             Format(
-              'Drive %d: READ %d sector(s) from ' +
+              'Drive 0x%x: READ %d sector(s) from ' +
               'CHS %d:%d:%d, load to %.4x:%.4x',
             [
               DriveNumber, SectorCount, Cylinder, Head, Sector,
