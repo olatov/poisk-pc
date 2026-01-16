@@ -6,10 +6,19 @@ org 0
 ; -------------------------------------------------
 bios_entry:
     sti
-    mov al, 0x68
+    mov al, 0x69
     out 0x68, al
 
-    cld
+    ; clear screen
+    mov ax, 0xbc00
+    mov es, ax
+    xor di, di
+    xor ax, ax
+    mov cx, 16384
+    cld    
+    rep stosw
+
+    ; print text
     mov ax, cs
     mov ds, ax
     mov si, even_blob
@@ -18,13 +27,56 @@ bios_entry:
     xor di, di
     mov cx, 160
     rep movsw
-
     mov si, odd_blob
     mov di, 0x2000
     mov cx, 160
     rep movsw
 
-    hlt    
+    ; color bars
+    mov dx, 160 * 6;  6 lines
+
+    mov di, 320 * 7
+    mov bx, di
+    mov ax, 0x5555  ; color 1
+    mov cx, dx
+    rep stosw
+    mov di, bx
+    add di, 0x2000
+    mov cx, dx
+    rep stosw
+
+    sub di, 0x2000
+    mov bx, di
+    mov ax, 0xAAAA  ; color 2
+    mov cx, dx
+    rep stosw
+    mov di, bx
+    add di, 0x2000
+    mov cx, dx
+    rep stosw
+
+    sub di, 0x2000
+    mov bx, di
+    mov ax, 0xFFFF  ; color 3
+    mov cx, dx
+    rep stosw
+    mov di, bx
+    add di, 0x2000
+    mov cx, dx
+    rep stosw
+
+    mov al, 0x69
+repeat:
+    mov bl, 8
+L0: 
+    mov cx, 0xFFFF
+L1: loop L1 
+    dec bl
+    jnz L0
+
+    xor al, 0x20
+    out 0x68, al    
+    jmp repeat
 
 even_blob:
     incbin "even.bin"
