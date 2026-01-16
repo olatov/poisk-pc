@@ -1,3 +1,2 @@
 FONT        RCDATA "assets/fonts/LiberationMono-Bold.ttf"
 GFX_SHADER  RCDATA "gfx/shader.fs"
-MINIMAL_ROM RCDATA "rom/minimal.rom"
