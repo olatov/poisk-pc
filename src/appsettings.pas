@@ -185,6 +185,7 @@ initialization
   Settings := TSettings.Create;
   Settings.Machine.ClockSpeed := 1250000;
   Settings.Machine.CpuSpeed := 250000;
+  Settings.Audio.Volume := 0.25;
   { Settings.Load; }
 
 finalization
