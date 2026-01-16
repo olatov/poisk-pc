@@ -325,7 +325,7 @@ begin
     'bios-rom:', 'fdc-rom:', 'hdc-rom:',
     'tape:', 'cartridge:',
     'fda:', 'fdb:', 'hdmaster:', 'hdslave:',
-    'turbo', 'window:', 'aspect', 'grayscale', 'texture-filter', 'scanlines'
+    'turbo', 'window:', 'aspect', 'grayscale', 'no-texture-filter', 'no-scanlines'
   ]);
   if ErrorMsg <> '' then begin
     ShowException(Exception.Create(ErrorMsg));
@@ -373,8 +373,8 @@ begin
 
   Settings.Machine.Turbo := HasOption('turbo');
   Settings.Video.GrayScale := HasOption('grayscale');
-  Settings.Video.ScanLines := HasOption('scanlines');
-  Settings.Video.TextureFilter := HasOption('texture-filter');
+  Settings.Video.ScanLines := not HasOption('no-scanlines');
+  Settings.Video.TextureFilter := not HasOption('no-texture-filter');
 
   if HasOption('window') then
   begin
@@ -1252,8 +1252,8 @@ begin
   writeln('                           or "WIDTHxHEIGHT" (e.g., "720x576")');
   writeln('  --aspect                 Use 4:3 aspect ratio correction');
   writeln('  --grayscale              Display in grayscale mode');
-  writeln('  --scanlines              Enable scanline effect');
-  writeln('  --texture-filter         Enable bilinear texture filtering');
+  writeln('  --no-scanlines           Disable scanline effect (enabled by default)');
+  writeln('  --no-texture-filter      Disable bilinear texture filtering (enabled by default)');
   writeln;
   writeln('Performance:');
   writeln('  --turbo                  Enable turbo mode (higher CPU speed)');
