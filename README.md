@@ -59,18 +59,50 @@ xattr -c poisk-darwin-universal
 
 ## Command-Line Options
 
+### Hardware Configuration
 ```
---bios-rom=<file>      Path to BIOS ROM file (required)
---fdc-rom=<file>       Path to FDC (Floppy Disk Controller) ROM
---xtide-rom=<file>     Path to XT-IDE ROM
---cartridge=<file>     Load cartridge ROM at C000:0000
---floppy-a=<file>      Mount floppy disk image in drive A:
---floppy-b=<file>      Mount floppy disk image in drive B:
---hdd=<file>           Mount hard disk image
---cassette=<file>      Load cassette tape image
---ram=<size>           RAM size in KB (default: 128)
---turbo                Enable turbo mode at startup
---fullscreen           Start in fullscreen mode
+--ramsize=<size>       Set RAM size in KB (32-640, default: 128)
+--bios-rom=<file>      Load BIOS ROM file (required for boot)
+--fdc-rom=<file>       Load FDC (Floppy Disk Controller) ROM
+--hdc-rom=<file>       Load HDC (Hard Disk Controller) ROM
+```
+
+### Storage Devices
+```
+--cartridge=<file>     Load cartridge ROM image
+--fda=<file>           Mount floppy disk image as drive A:
+                       (supports 360KB and 720KB formats)
+                       (requires --fdc-rom for controller)
+--fdb=<file>           Mount floppy disk image as drive B:
+                       (supports 360KB and 720KB formats)
+                       (requires --fdc-rom for controller)
+--hdmaster=<file>      Mount hard disk image as master drive
+                       (CHS geometry: 16 heads, 63 sectors/track)
+                       (requires --hdc-rom for controller)
+--hdslave=<file>       Mount hard disk image as slave drive
+                       (CHS geometry: 16 heads, 63 sectors/track)
+                       (requires --hdc-rom for controller)
+--tape=<file>          Load cassette tape file (PCM WAV format)
+```
+
+### Display Options
+```
+--window=<mode>        Window mode: "full" for fullscreen,
+                       or "WIDTHxHEIGHT" (e.g., "720x576")
+--aspect               Use 4:3 aspect ratio correction
+--grayscale            Display in grayscale mode
+--no-scanlines         Disable scanline effect (enabled by default)
+--no-texture-filter    Disable bilinear texture filtering (enabled by default)
+```
+
+### Performance
+```
+--turbo                Enable turbo mode (higher CPU speed)
+```
+
+### Help
+```
+-h, --help             Show this help message
 ```
 
 ## Keyboard Shortcuts
