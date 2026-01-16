@@ -183,6 +183,8 @@ end;
 
 initialization
   Settings := TSettings.Create;
+  Settings.Machine.ClockSpeed := 1250000;
+  Settings.Machine.CpuSpeed := 250000;
   { Settings.Load; }
 
 finalization
