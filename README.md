@@ -257,6 +257,10 @@ A:  This is a quirk of the POISK BIOS which defines four floppy drives (A-D). Th
 **Q: Can I install Windows onto this? **  
 A: Windows 3.0 or earlier will possibly work, although the experience isn't going to be great, given there is no mouse emulation at this point. 
 
+## Known issues
+- PC speaker emulation is far from perfect. The sound is there but can be somewhat choppy and distorted.
+- Mouse is not (yet) supported.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
