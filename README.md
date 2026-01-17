@@ -2,7 +2,7 @@
 
 An emulator for the [Poisk](https://en.wikipedia.org/wiki/Poisk_%28computer%29) — an IBM PC compatible computer designed by PO Electronmash (Kyiv, Ukraine) in the late 1980s to early 1990s.
 
-![Version](https://img.shields.io/badge/version-0.9-blue)
+![Version](https://img.shields.io/badge/version-0.9-blue)  
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 ## Features
@@ -37,7 +37,7 @@ An emulator for the [Poisk](https://en.wikipedia.org/wiki/Poisk_%28computer%29) 
 
 ### Download Pre-built Binaries
 
-Download the latest release from the releases page and extract the archive.
+Download the latest release from the releases page and extract the archive. 
 
 ### Running the Emulator
 
@@ -64,7 +64,7 @@ For a full system, you'll need a complete BIOS ROM (not included):
 
 ### macOS Security Note
 
-On macOS, you may need to remove the quarantine attribute:
+On macOS, you may need to remove the quarantine attribute: 
 
 ```bash
 xattr -c poisk-darwin-universal
@@ -74,7 +74,7 @@ xattr -c poisk-darwin-universal
 
 ### Hardware Configuration
 ```
---ramsize=<size>       Set RAM size in KB (32-640, default: 128)
+--ramsize=<size>       Set RAM size in KB (32-640, default:  128)
 --bios-rom=<file>      Load BIOS ROM file (required for boot)
 --fdc-rom=<file>       Load FDC (Floppy Disk Controller) ROM
 --hdc-rom=<file>       Load HDC (Hard Disk Controller) ROM
@@ -86,14 +86,14 @@ xattr -c poisk-darwin-universal
 --fda=<file>           Mount floppy disk image as drive A:
                        (supports 360KB and 720KB formats)
                        (requires --fdc-rom for controller)
---fdb=<file>           Mount floppy disk image as drive B:
+--fdb=<file>           Mount floppy disk image as drive B: 
                        (supports 360KB and 720KB formats)
                        (requires --fdc-rom for controller)
 --hdmaster=<file>      Mount hard disk image as master drive
                        (CHS geometry: 16 heads, 63 sectors/track)
                        (requires --hdc-rom for controller)
 --hdslave=<file>       Mount hard disk image as slave drive
-                       (CHS geometry: 16 heads, 63 sectors/track)
+                       (CHS geometry:  16 heads, 63 sectors/track)
                        (requires --hdc-rom for controller)
 --tape=<file>          Load cassette tape file (PCM WAV format)
 ```
@@ -120,7 +120,7 @@ xattr -c poisk-darwin-universal
 
 ## Keyboard Shortcuts
 
-All shortcuts require holding **F11** key:
+All shortcuts require holding **F11** key: 
 
 ### System Control
 - **F11 + Esc** — Exit emulator
@@ -170,13 +170,13 @@ The project depends on:
 
 The compiled binary will be in the `out/` directory.
 
-**Note:** The Docker build script is currently configured for Linux x86_64 targets only.
+**Note:** The Docker build script is currently configured for Linux x86_64 targets only. 
 
 #### Manual Build (Linux)
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/poisk-pc.git
+git clone https://github.com/yourusername/poisk-pc. git
 cd poisk-pc
 ```
 
@@ -187,7 +187,7 @@ git clone https://github.com/olatov/pas8088.git
 git clone https://github.com/GuvaCode/ray4laz.git
 cd ray4laz
 git checkout 5.6.2
-cd ../..
+cd ../.. 
 ```
 
 3. Compile for Linux x86_64:
@@ -216,7 +216,7 @@ fpc -O2 -CX -XX -Xs poisk.lpr \
 │   ├── videocontroller.pas
 │   ├── keyboard.pas
 │   ├── timer.pas
-│   └── ...
+│   └── ... 
 ├── deps/             # Dependencies (pas8088, ray4laz)
 ├── release/          # Pre-built binaries
 └── build.sh          # Docker build script
@@ -226,8 +226,8 @@ fpc -O2 -CX -XX -Xs poisk.lpr \
 
 ### System Specifications
 
-- **CPU**: Intel 8088 (turbo mode available)
-- **RAM**: Configurable (default 128 KB)
+- **CPU**:  Intel 8088 (turbo mode available)
+- **RAM**:  Configurable (default 128 KB)
 - **Video**: CGA-compatible (640×200 mono, 320×200 4-color)
 - **Storage**: Floppy disks (360KB ; 720KB), XT-IDE hard disks
 - **Audio**: PC Speaker with PWM
@@ -238,13 +238,29 @@ fpc -O2 -CX -XX -Xs poisk.lpr \
 - For extra performance, enable turbo mode with **F11 + T**
 - Use scanlines and 4:3 aspect ratio for an authentic retro experience
 
-## Contributing
+## FAQ
 
-Contributions are welcome! Please feel free to submit pull requests or open issues for bugs and feature requests.
+**Q:  It says on the screen that I need to press "BK", what is this?**  
+A: BK means CR (Carriage Return), essentially it's the "Enter" key on your keyboard. 
+
+**Q: How do I switch the keyboard layout to Cyrillic and back?**  
+A: Right Ctrl key (assuming BIOS v1991). The screen background color changes to blue when Cyrillic is active.
+
+**Q: I tried loading from tape, it said the file was found, but never loaded. Why?**  
+A:  After you press the F1 (Load from tape), you must enter the file name _exactly_ as on tape. E.g.  'BASIC' (uppercase!) for BASIC.
+
+**Q: I tried to boot into a disk OS but the machine froze in the process. Why?**  
+A:  The default of 128KB RAM is insufficient for many operating systems (MS-DOS 5+, FreeDOS, ELKS). Add `--ramsize=640` to the command line.
+
+**Q: I've booted into DOS and found that the hard disk is assigned the E: letter. Why not C:  as I'd expect?**  
+A:  This is a quirk of the POISK BIOS which defines four floppy drives (A-D). Therefore, the hard disk gets the first available letter (E) after those.  In practice, this affects DOS 3.30 and earlier.  In DOS 5. 0 or later, or FreeDOS, you will get to see the C: drive.
+
+**Q: Can I install Windows onto this? **  
+A: Windows 3.0 or earlier will possibly work, although the experience isn't going to be great, given there is no mouse emulation at this point. 
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
 
 ## Acknowledgments
 
