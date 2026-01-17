@@ -91,7 +91,7 @@ begin
       for I := 1 to ($100 - Length(ComFileHeader)) do OutStream.WriteByte(0);
 
       { Load contents, checl for disk IO and DOS functions }
-      InStream := TMemoryStream.Create(fmOpenRead);
+      InStream := TMemoryStream.Create;
       try
         InStream.LoadFromFile(InFileName);
         while InStream.Position < InStream.Size do
