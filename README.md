@@ -1,6 +1,6 @@
 # Poisk PC Emulator
 
-An emulator for the [Poisk](https://en.wikipedia.org/wiki/Poisk_%28computer%29) — an Intel 8088-based IBM PC compatible computer designed and manufactured by PO Electronmash (Kyiv, Ukraine) in the l[...]  
+An emulator for the [Poisk](https://en.wikipedia.org/wiki/Poisk_%28computer%29) — an IBM PC compatible computer designed by PO Electronmash (Kyiv, Ukraine) in the late 1980s to early 1990s.
 
 ![Version](https://img.shields.io/badge/version-0.9-blue)  
 ![License](https://img.shields.io/badge/license-MIT-green)
