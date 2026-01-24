@@ -57,3 +57,32 @@ Tip
 ===
 If you hear a click from the speaker every time you press a key on the keyboard,
 it is a feature of the POISK BIOS. Press F4 to toggle on/off.
+
+
+FAQ
+===
+Q: It says on the screen that I need to press "BK", what is this?
+A: BK means CR (Carriage Return), essentially it's the "Enter" key on your keyboard.
+
+Q: How do I switch the keyboard layout to Cyrillic and back?
+A: Right Ctrl key (assuming BIOS v1991). The screen background color changes to blue when Cyrillic is active.
+
+Q: I tried loading from tape, it said the file was found, but never loaded. Why?
+A: After you press the F1 (Load from tape), you must enter the file name _exactly_ as on tape. E.g. 'BASIC' (uppercase!) for BASIC.
+
+Q: I tried to boot into a disk OS but the machine froze in the process. Why?
+A: The default of 128KB RAM is insufficient for many operating systems (MS-DOS 5+, FreeDOS, ELKS).
+   Add `--ramsize=640` to the command line.
+
+Q: I've booted into DOS and found that the hard disk is assigned the E: letter. Why not C: as I'd expect?
+A: This is a quirk of the POISK BIOS which defines four floppy drives (A-D). Therefore, the hard disk gets the first available letter (E) after those.
+   In practice, this affects DOS 3.30 and earlier. In DOS 5.0 or later, or FreeDOS, you will get to see the C: drive.
+
+Q: Can I install Windows onto this?
+A: Windows 3.0 or earlier will possibly work, although the experience isn't going to be great, given there is no mouse emulation at this point.
+
+
+Known issues
+============
+* PC speaker emulation is far from perfect. The sound is there but can be somewhat choppy and distorted.
+* Mouse is not (yet) supported.
