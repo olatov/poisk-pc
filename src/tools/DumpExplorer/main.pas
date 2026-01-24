@@ -200,6 +200,11 @@ var
      Result := BoolToStr(AValue, '1', '0');
   end;
 
+const
+  FlagC = 0; FlagP = 2; FlagA = 4;
+  FlagZ = 6; FlagS = 7; FlagT = 8;
+  FlagI = 9; FlagD = 10; FlagO = 11;
+
 begin
   if not Assigned(FDumpStream) or (FDumpStream.Size < SizeOf(TDumpFrame)) then Exit;
   DumpFrame := CurrentDumpFrame;
