@@ -75,6 +75,7 @@ xattr -c poisk-darwin-universal
 ```
 --ramsize=<size>       Set RAM size in KB (32-640, default:  128)
 --bios-rom=<file>      Load BIOS ROM file (required for boot)
+--keyboard=<1991|1989> Keyboard layout of the BIOS revision (default: 1991)
 --fdc-rom=<file>       Load FDC (Floppy Disk Controller) ROM
 --hdc-rom=<file>       Load HDC (Hard Disk Controller) ROM
 ```
@@ -243,7 +244,22 @@ fpc -O2 -CX -XX -Xs poisk.lpr \
 A: BK means CR (Carriage Return), essentially it's the "Enter" key on your keyboard. 
 
 **Q: How do I switch the keyboard layout to Cyrillic and back?**  
-A: Right Ctrl key (assuming BIOS v1991). The screen background color changes to blue when Cyrillic is active.
+A: Right Ctrl key (Right Command on macOS), with either BIOS. With BIOS v1991 the screen background color changes to blue when Cyrillic is active.
+
+**Q: The keys are all wrong with the 1989 BIOS. What do I do?**  
+A: Start the emulator with `--keyboard=1989`. The 1989 BIOS reads the same key matrix as a different (GOST) keyboard:
+
+- The digit row works like the Russian typewriter layout: punctuation without Shift, digits with Shift.
+
+  | Host key | `` ` `` | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 0 | - | = | Num * |
+  |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+  | Plain | `(` | `)` | `-` | `/` | `"` | `:` | `,` | `.` | `_` | `?` | `%` | `!` | `;` | `*` |
+  | Shift | `+` | `1` | `2` | `3` | `4` | `5` | `6` | `7` | `8` | `9` | `0` | `=` | `$` | `#` |
+  | SHIFT2 | `'` | `&` | `@` | `^` | `{` | `}` | `\` | `<` | `>` | `\|` | `[` | `]` | `` ` `` | `~` |
+
+- Hold Right Alt for SHIFT2. Right Ctrl (Right Command on macOS) toggles РУС/ЛАТ.
+- In РУС mode, `[ ] ; ' , . /` type Х Ъ Ж Э Б Ю Ё. These keys type nothing in ЛАТ mode.
+- `\` types `\`; Num / types `/`; Num + and Num - are the keypad keys; Print Screen is PrtSc (`*` without Shift).
 
 **Q: I tried loading from tape, it said the file was found, but never loaded. Why?**  
 A:  After you press the F1 (Load from tape), you must enter the file name _exactly_ as on tape. E.g.  'BASIC' (uppercase!) for BASIC.

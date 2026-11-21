@@ -81,6 +81,7 @@ type
 
       TConfiguration = record
         RamSize: Integer;
+        KeyboardLayout: TKeyboardLayout;
         BiosRom, FdcRom, HdcRom: TBytes;
         Tape: TStream;
         Cartridge: TBytes;
@@ -111,7 +112,7 @@ type
     procedure RenderDisplay(AVideo: TVideoController);
     procedure RunMachine;
     procedure RenderOsd;
-    procedure BuildKeyboardMap;
+    procedure BuildKeyboardMap(ALayout: TKeyboardLayout);
     function HandleBootstrap(const Cpu: TCpu8088): Boolean;
     function HandleDiskIO: Boolean;
     procedure UpdateKeyboard(AKeyboard: TKeyboard);
@@ -194,6 +195,7 @@ begin
 
   { Keyboard }
   FKeyboard := TKeyboard.Create(Result);
+  FKeyboard.Layout := Configuration.KeyboardLayout;
   Result.IOBus.AttachDevice(FKeyboard);
 
   { Cassette drive }
@@ -321,7 +323,7 @@ begin
 
   // quick check parameters
   ErrorMsg := CheckOptions('h', [
-    'help', 'ramsize:',
+    'help', 'ramsize:', 'keyboard:',
     'bios-rom:', 'fdc-rom:', 'hdc-rom:',
     'tape:', 'cartridge:',
     'fda:', 'fdb:', 'hdmaster:', 'hdslave:',
@@ -369,7 +371,6 @@ begin
   Font := LoadFontFromResource('FONT', '.ttf');
 
   FKeyboardMap := TKeyboardMap.Create;
-  BuildKeyboardMap;
 
   Settings.Machine.Turbo := HasOption('turbo');
   Settings.Video.GrayScale := HasOption('grayscale');
@@ -402,6 +403,7 @@ begin
   SetWindowSize(Settings.Window.Width, Settings.Window.Height);
 
   Configuration := BuildConfiguration;
+  BuildKeyboardMap(Configuration.KeyboardLayout);
   Computer := BuildMachine(Configuration);
 end;
 
@@ -943,25 +945,20 @@ begin
   end;
 end;
 
-procedure TApplication.BuildKeyboardMap;
+procedure TApplication.BuildKeyboardMap(ALayout: TKeyboardLayout);
 begin
   with FKeyboardMap do
   begin
     Clear;
+
+    { Keys shared by both layouts }
     Add(keyEnter, [KEY_ENTER, KEY_KP_ENTER]);
     Add(keySpace, [KEY_SPACE]);
     Add(keyEsc, [KEY_ESCAPE]);
     Add(keyBackspace, [KEY_BACKSPACE]);
+    Add(keyTab, [KEY_TAB]);
     Add(keyLeftShift, [KEY_LEFT_SHIFT]);
-    Add(keyRightShift, [KEY_RIGHT_SHIFT, KEY_KP_ADD]);
     Add(keyLeftControl, [KEY_LEFT_CONTROL]);
-    {$ifdef DARWIN}
-      Add(keyRightControl, [KEY_RIGHT_SUPER]);
-    {$else}
-      Add(keyRightControl, [KEY_RIGHT_CONTROL]);
-    {$endif}
-    Add(keyLeftAlt, [KEY_LEFT_ALT]);
-    Add(keyRightAlt, [KEY_RIGHT_ALT]);
     Add(keyF1, [KEY_F1]);
     Add(keyF2, [KEY_F2]);
     Add(keyF3, [KEY_F3]);
@@ -972,16 +969,6 @@ begin
     Add(keyF8, [KEY_F8]);
     Add(keyF9, [KEY_F9]);
     Add(keyF10, [KEY_F10]);
-    Add(keyD1, [KEY_ONE]);
-    Add(keyD2, [KEY_TWO]);
-    Add(keyD3, [KEY_THREE]);
-    Add(keyD4, [KEY_FOUR]);
-    Add(keyD5, [KEY_FIVE]);
-    Add(keyD6, [KEY_SIX]);
-    Add(keyD7, [KEY_SEVEN]);
-    Add(keyD8, [KEY_EIGHT, KEY_KP_ADD]);
-    Add(keyD9, [KEY_NINE]);
-    Add(keyD0, [KEY_ZERO]);
     Add(keyA, [KEY_A]);
     Add(keyB, [KEY_B]);
     Add(keyC, [KEY_C]);
@@ -1019,21 +1006,89 @@ begin
     Add(keyNumPad9, [KEY_KP_9, KEY_PAGE_UP]);
     Add(keyNumPad0, [KEY_KP_0, KEY_INSERT]);
     Add(keyDecimal, [KEY_KP_DECIMAL, KEY_DELETE]);
-    Add(keyPeriod, [KEY_PERIOD]);
-    Add(keyComma, [KEY_COMMA]);
-    Add(keyMinus, [KEY_MINUS, KEY_KP_SUBTRACT]);
-    Add(keyEqual, [KEY_EQUAL, KEY_KP_ADD, KEY_KP_MULTIPLY, KEY_KP_DIVIDE]);
-    Add(keyApostrophe, [KEY_APOSTROPHE]);
-    Add(keyLeftBracket, [KEY_LEFT_BRACKET]);
-    Add(keyRightBracket, [KEY_RIGHT_BRACKET]);
-    Add(keyGrave, [KEY_GRAVE]);
-    Add(keySlash, [KEY_SLASH]);
-    Add(keySemiColon, [KEY_SEMICOLON]);
-    Add(keyBackSlash, [KEY_BACKSLASH]);
     Add(keyNumLock, [KEY_NUM_LOCK]);
     Add(keyScrollLock, [KEY_SCROLL_LOCK]);
-    Add(keyPauseBreak, [KEY_PAUSE]);
-    Add(keyTab, [KEY_TAB]);
+
+    case ALayout of
+      kl1991:
+        begin
+          Add(keyRightShift, [KEY_RIGHT_SHIFT, KEY_KP_ADD]);
+          { РУС/ЛАТ }
+          {$ifdef DARWIN}
+            Add(keyRightControl, [KEY_RIGHT_SUPER]);
+          {$else}
+            Add(keyRightControl, [KEY_RIGHT_CONTROL]);
+          {$endif}
+          Add(keyLeftAlt, [KEY_LEFT_ALT]);
+          Add(keyRightAlt, [KEY_RIGHT_ALT]);
+          Add(keyD1, [KEY_ONE]);
+          Add(keyD2, [KEY_TWO]);
+          Add(keyD3, [KEY_THREE]);
+          Add(keyD4, [KEY_FOUR]);
+          Add(keyD5, [KEY_FIVE]);
+          Add(keyD6, [KEY_SIX]);
+          Add(keyD7, [KEY_SEVEN]);
+          Add(keyD8, [KEY_EIGHT, KEY_KP_ADD]);
+          Add(keyD9, [KEY_NINE]);
+          Add(keyD0, [KEY_ZERO]);
+          Add(keyPeriod, [KEY_PERIOD]);
+          Add(keyComma, [KEY_COMMA]);
+          Add(keyMinus, [KEY_MINUS, KEY_KP_SUBTRACT]);
+          Add(keyEqual, [KEY_EQUAL, KEY_KP_ADD, KEY_KP_MULTIPLY, KEY_KP_DIVIDE]);
+          Add(keyApostrophe, [KEY_APOSTROPHE]);
+          Add(keyLeftBracket, [KEY_LEFT_BRACKET]);
+          Add(keyRightBracket, [KEY_RIGHT_BRACKET]);
+          Add(keyGrave, [KEY_GRAVE]);
+          Add(keySlash, [KEY_SLASH]);
+          Add(keySemiColon, [KEY_SEMICOLON]);
+          Add(keyBackSlash, [KEY_BACKSLASH]);
+          Add(keyPauseBreak, [KEY_PAUSE]);
+        end;
+
+      kl1989:
+        begin
+          { Both Shift positions send LShift (2Ah) }
+          Add(keyRightShift, [KEY_RIGHT_SHIFT]);
+          Add(keyLeftAlt, [KEY_LEFT_ALT]);
+          {$ifdef DARWIN}
+            Add(keyRusLat, [KEY_RIGHT_SUPER]);
+          {$else}
+            Add(keyRusLat, [KEY_RIGHT_CONTROL]);
+          {$endif}
+          Add(keyShift2, [KEY_RIGHT_ALT]);
+          Add(keyPrintScreen, [KEY_PRINT_SCREEN]);
+          Add(keyNumPadPlus, [KEY_KP_ADD]);
+          Add(keyNumPadMinus, [KEY_KP_SUBTRACT]);
+          Add(keySlash, [KEY_KP_DIVIDE]);
+          Add(keyBackSlash, [KEY_BACKSLASH]);
+
+          { GOST top row: the host digit key gives the GOST key that
+            carries that digit (on Shift), as in the Russian typewriter layout }
+          Add(keyGostS4, [KEY_GRAVE]);        {  (  +  '  }
+          Add(keyGostS7, [KEY_ONE]);          {  )  1  &  }
+          Add(keyGostS6, [KEY_TWO]);          {  -  2  @  }
+          Add(keyGostS8, [KEY_THREE]);        {  /  3  ^  }
+          Add(keyGostS5, [KEY_FOUR]);         {  "  4     }
+          Add(keyGostS9, [KEY_FIVE]);         {  :  5     }
+          Add(keyGostS10, [KEY_SIX]);         {  ,  6  \  }
+          Add(keyGostS2, [KEY_SEVEN]);        {  .  7  <  }
+          Add(keyGostS3, [KEY_EIGHT]);        {  _  8  >  }
+          Add(keyGostS12, [KEY_NINE]);        {  ?  9  |  }
+          Add(keyGostS11, [KEY_ZERO]);        {  %  0  [  }
+          Add(keyGostS15, [KEY_MINUS]);       {  !  =  ]  }
+          Add(keyGostS13, [KEY_EQUAL]);       {  ;  $  `  }
+          Add(keyGostS1, [KEY_KP_MULTIPLY]);  {  *  #  ~  }
+
+          { Dedicated Cyrillic letters, at their PC ЙЦУКЕН positions }
+          Add(keyCyrKha, [KEY_LEFT_BRACKET]);
+          Add(keyCyrHardSign, [KEY_RIGHT_BRACKET]);
+          Add(keyCyrZhe, [KEY_SEMICOLON]);
+          Add(keyCyrE, [KEY_APOSTROPHE]);
+          Add(keyCyrBe, [KEY_COMMA]);
+          Add(keyCyrYu, [KEY_PERIOD]);
+          Add(keyCyrYo, [KEY_SLASH]);
+        end;
+    end;
   end;
 end;
 
@@ -1056,6 +1111,7 @@ var
 begin
   { Defaults }
   Result.RamSize := DefaultRamSize;
+  Result.KeyboardLayout := kl1991;
   Result.Tape := Nil;
   Result.FloppyDiskA := Nil;
   Result.FloppyDiskB := Nil;
@@ -1065,6 +1121,16 @@ begin
   if HasOption('ramsize') then
     Result.RamSize := EnsureRange(
       StrToIntDef(GetOptionValue('ramsize'), DefaultRamSize), 32, 640);
+
+  if HasOption('keyboard') then
+    case GetOptionValue('keyboard') of
+      '1991': Result.KeyboardLayout := kl1991;
+      '1989': Result.KeyboardLayout := kl1989;
+    else
+      raise Exception.CreateFmt(
+        'Unknown keyboard layout "%s" (expected 1991 or 1989)',
+        [GetOptionValue('keyboard')]);
+    end;
 
   if HasOption('bios-rom') then
     Result.BiosRom := TFile.ReadAllBytes(GetOptionValue('bios-rom'));
@@ -1228,6 +1294,7 @@ begin
   writeln('Hardware Configuration:');
   writeln('  --ramsize=<size>         Set RAM size in KB (32-640, default: 128)');
   writeln('  --bios-rom=<file>        Load BIOS ROM file (required for boot)');
+  writeln('  --keyboard=<1991|1989>   Keyboard layout of the BIOS revision (default: 1991)');
   writeln('  --fdc-rom=<file>         Load FDC (Floppy Disk Controller) ROM');
   writeln('  --hdc-rom=<file>         Load HDC (Hard Disk Controller) ROM');
   writeln;
