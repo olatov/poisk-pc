@@ -15,4 +15,5 @@ bin/
 lib/
 deps/
 out/
-
+bios_p.utf8/
+.vscode/
