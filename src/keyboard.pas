@@ -157,13 +157,19 @@ end;
 
 function TKeyboard.ReadColumns(AFirst, ALast: Integer): Byte;
 var
-  I: Integer;
+  Row, I: Integer;
 begin
-  { Active low: a pressed key pulls its column bit to 0 }
+  { Active low: a pressed key pulls its column bit to 0.
+    Every bit set in port 60h drives one row, so with several rows selected
+    (e.g. out 60h, FFh) a column reads 0 if a key is pressed in any of them.
+    Both BIOSes use FFh as an "any key down?" test; the 1989 tape
+    BREAK_TEST uses it to look for Esc in column 7. }
   Result := Byte((1 shl (ALast - AFirst + 1)) - 1);
-  for I := AFirst to ALast do
-    if Self[KeyMatrix[Layout, ActiveRow, I]] then
-      Result := Result and not (1 shl (I - AFirst));
+  for Row := 0 to 7 do
+    if ScanCode and (1 shl Row) <> 0 then
+      for I := AFirst to ALast do
+        if Self[KeyMatrix[Layout, Row, I]] then
+          Result := Result and not (1 shl (I - AFirst));
 end;
 
 function TKeyboard.GetIOBus: IIOBus;
@@ -189,24 +195,11 @@ end;
 function TKeyboard.OnIORead(
   ADevice: IIOBusDevice; AAddress: Word; out AData: Byte): Boolean;
 begin
+  Result := True;
   case AAddress of
     $60: AData := ScanCode;
-    $69:
-      begin
-        Result := True;
-        if ScanCode = $FF then
-          AData := 0
-        else
-          AData := ReadColumns(0, 7);
-      end;
-    $6A:
-      begin
-        Result := True;
-        if ScanCode = $FF then
-          AData := 0
-        else
-          AData := ReadColumns(8, 11);
-      end;
+    $69: AData := ReadColumns(0, 7);
+    $6A: AData := ReadColumns(8, 11);
   else
     Result := False;
   end;
